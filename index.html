@@ -96,8 +96,6 @@
   #modes button.on{color:#0a0f1e;background:#8fc5ff}
   #modes button:focus-visible{outline:1.5px solid #55d6f0;outline-offset:-2px}
   /* ---- misc chrome ---- */
-  #hint{position:fixed;right:20px;bottom:20px;z-index:5;font:500 9.5px/1.6 var(--mono);
-    letter-spacing:.1em;color:var(--faint);text-transform:uppercase;pointer-events:none;text-align:right}
   .maplibregl-ctrl-bottom-left{bottom:14px}
   .maplibregl-ctrl-attrib{background:rgba(10,15,30,.6)!important;color:#93a0b8!important;font-size:10px}
   .maplibregl-ctrl-attrib a{color:#b9c6dd!important}
@@ -113,7 +111,6 @@
     #card .ph{height:92px}
     #card ul{max-height:118px}
     #card .blurb{display:none}
-    #hint{display:none}
     #rail{bottom:10px}
   }
   @media (prefers-reduced-motion:reduce){.pin.hot b{animation:none}}
@@ -124,15 +121,13 @@
 <header id="plate">
   <div class="eyebrow">AUG 8–16 · 2026 · MEXICO CITY</div>
   <h1>CDMX <b>EN CRISTAL</b></h1>
-  <div class="sub">Nine days on the real map. Hover a day, a route, or a stop — drag to pan, right-drag (or two fingers) to tilt &amp; orbit.</div>
+  <div class="sub">Hover a day to light its route — dotted walks, solid rides.</div>
 </header>
 <div id="modes" role="group" aria-label="Map view mode">
   <button id="m2d" type="button">2D</button><button id="m3d" type="button" class="on">3D</button>
 </div>
 <nav id="rail" aria-label="Days"></nav>
 <aside id="card" aria-live="polite"></aside>
-<div id="hint">drag · pan &nbsp;/&nbsp; right-drag or ctrl-drag · tilt &amp; orbit &nbsp;/&nbsp; scroll · zoom &nbsp;/&nbsp; esc · reset<br>
-routes follow real streets — dotted = walking, solid = ride/bus</div>
 
 <script src="data.js"></script>
 <script>
@@ -277,6 +272,15 @@ map.on('load',()=>{
   // hide flat building fills; add glass extrusions
   style.layers.forEach(l=>{
     if(l.type==='fill'&&/building/.test(l.id)) map.setLayoutProperty(l.id,'visibility','none');
+  });
+  // quiet cartography: street names & shields only when zoomed in close,
+  // POI labels closer still, house numbers never — keep place names as-is
+  style.layers.forEach(l=>{
+    if(l.type!=='symbol')return;
+    const sl=l['source-layer'];
+    if(sl==='transportation_name') map.setLayerZoomRange(l.id,Math.max(l.minzoom||0,14),24);
+    else if(sl==='poi') map.setLayerZoomRange(l.id,Math.max(l.minzoom||0,15),24);
+    else if(sl==='housenumber') map.setLayoutProperty(l.id,'visibility','none');
   });
   map.addLayer({
     id:'glass-buildings',type:'fill-extrusion',source:srcName,'source-layer':'building',minzoom:13,
