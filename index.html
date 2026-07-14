@@ -75,16 +75,26 @@
     border:1px solid rgba(120,225,170,.35);color:#8ce8b8}
   #card .tag.todo{border-color:rgba(245,190,90,.4);color:#f2ca7e}
   /* ---- markers ---- */
-  .pin{width:16px;height:16px;cursor:pointer;position:relative}
-  .pin i{position:absolute;inset:3px;border-radius:50%;background:var(--c);
-    box-shadow:0 0 8px var(--c),0 0 2px #fff inset}
-  .pin b{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--c);opacity:.75}
-  .pin.home{width:20px;height:20px}
-  .pin.home i{inset:4px;background:#fff;box-shadow:0 0 10px #cfe4ff}
+  .pin{width:26px;height:26px;cursor:pointer;position:relative}
+  .pin i{position:absolute;inset:6px;border-radius:50%;background:var(--c);
+    border:2px solid rgba(255,255,255,.92);
+    box-shadow:0 0 12px var(--c),0 2px 6px rgba(0,0,0,.5)}
+  .pin b{position:absolute;inset:0;border-radius:50%;border:2px solid var(--c);opacity:.8}
+  .pin.home{width:34px;height:34px}
+  .pin.home i{inset:8px;background:#fff;box-shadow:0 0 14px #cfe4ff,0 2px 6px rgba(0,0,0,.5)}
   .pin.home b{border-color:#fff}
   .pin.dim{opacity:.18}
   .pin.hot b{animation:pulse 1.5s ease-in-out infinite}
-  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.7)}}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.6)}}
+  /* ---- 2D/3D mode toggle ---- */
+  #modes{position:fixed;left:22px;top:162px;z-index:6;display:flex;
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    background:var(--panel);backdrop-filter:blur(14px)}
+  #modes button{font:600 11px/1 var(--mono);letter-spacing:.08em;color:var(--mut);
+    background:transparent;border:0;padding:9px 15px;cursor:pointer;transition:.15s}
+  #modes button:hover{color:var(--ink)}
+  #modes button.on{color:#0a0f1e;background:#8fc5ff}
+  #modes button:focus-visible{outline:1.5px solid #55d6f0;outline-offset:-2px}
   /* ---- misc chrome ---- */
   #hint{position:fixed;right:20px;bottom:20px;z-index:5;font:500 9.5px/1.6 var(--mono);
     letter-spacing:.1em;color:var(--faint);text-transform:uppercase;pointer-events:none;text-align:right}
@@ -98,6 +108,7 @@
     #plate{left:12px;top:12px;padding:10px 13px}
     #plate h1{font-size:22px}
     #plate .sub{display:none}
+    #modes{left:12px;top:84px}
     #card{left:12px;right:12px;width:auto;top:auto;bottom:72px}
     #card .ph{height:92px}
     #card ul{max-height:118px}
@@ -113,11 +124,14 @@
 <header id="plate">
   <div class="eyebrow">AUG 8–16 · 2026 · MEXICO CITY</div>
   <h1>CDMX <b>EN CRISTAL</b></h1>
-  <div class="sub">Nine days on the real map. Hover a day, a route, or a stop — drag to pan, right-drag to tilt &amp; orbit.</div>
+  <div class="sub">Nine days on the real map. Hover a day, a route, or a stop — drag to pan, right-drag (or two fingers) to tilt &amp; orbit.</div>
 </header>
+<div id="modes" role="group" aria-label="Map view mode">
+  <button id="m2d" type="button">2D</button><button id="m3d" type="button" class="on">3D</button>
+</div>
 <nav id="rail" aria-label="Days"></nav>
 <aside id="card" aria-live="polite"></aside>
-<div id="hint">right-drag · orbit &nbsp;/&nbsp; scroll · zoom &nbsp;/&nbsp; esc · reset<br>
+<div id="hint">drag · pan &nbsp;/&nbsp; right-drag or ctrl-drag · tilt &amp; orbit &nbsp;/&nbsp; scroll · zoom &nbsp;/&nbsp; esc · reset<br>
 routes follow real streets — dotted = walking, solid = ride/bus</div>
 
 <script src="data.js"></script>
@@ -228,8 +242,24 @@ const map=new maplibregl.Map({
   maxPitch:72, antialias:true, attributionControl:{compact:true}
 });
 map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-left');
-map.dragRotate.enable(); map.touchZoomRotate.enableRotation();
+map.dragPan.enable(); map.dragRotate.enable(); map.keyboard.enable();
+map.touchZoomRotate.enableRotation(); map.touchPitch.enable();
 map.getCanvas().style.cursor='';
+
+/* ---- 2D / 3D mode ---- */
+let mode='3d';
+const basePitch=()=>mode==='3d'?58:0, baseBearing=()=>mode==='3d'?-15:0;
+function setMode(m){
+  if(mode===m)return;
+  mode=m;
+  document.getElementById('m2d').classList.toggle('on',m==='2d');
+  document.getElementById('m3d').classList.toggle('on',m==='3d');
+  if(map.getLayer('glass-buildings'))
+    map.setLayoutProperty('glass-buildings','visibility',m==='3d'?'visible':'none');
+  map.easeTo({pitch:basePitch(),bearing:baseBearing(),duration:rmq?0:900});
+}
+document.getElementById('m2d').addEventListener('click',()=>setMode('2d'));
+document.getElementById('m3d').addEventListener('click',()=>setMode('3d'));
 
 function bboxOf(coordsList){
   const b=new maplibregl.LngLatBounds();
@@ -277,8 +307,9 @@ map.on('load',()=>{
       map.on('click',day.id+sfx,e=>{e.preventDefault?.();select(day.id)});
     });
   });
-  if(!rmq) map.fitBounds(cdmxBounds,{padding:pad(),pitch:58,bearing:-15,duration:2200});
-  else map.fitBounds(cdmxBounds,{padding:pad(),pitch:58,bearing:-15,duration:0});
+  if(map.getLayer('glass-buildings'))
+    map.setLayoutProperty('glass-buildings','visibility',mode==='3d'?'visible':'none');
+  map.fitBounds(cdmxBounds,{padding:pad(),pitch:basePitch(),bearing:baseBearing(),duration:rmq?0:2200});
 });
 // some embedded webviews report a stale container size at init and never
 // notify the ResizeObserver — nudge for the first few seconds, refitting
@@ -293,7 +324,7 @@ addEventListener('resize',()=>map.resize());
    if((c.clientWidth!==w||c.clientHeight!==h)){
      w=c.clientWidth;h=c.clientHeight;
      if(!userMoved&&!state.sel&&map.loaded())
-       map.fitBounds(cdmxBounds,{padding:pad(),pitch:58,bearing:-15,duration:0});
+       map.fitBounds(cdmxBounds,{padding:pad(),pitch:basePitch(),bearing:baseBearing(),duration:0});
    }
    if(++n>=12)clearInterval(iv)},400);}
 
@@ -374,11 +405,12 @@ DAYS.forEach(day=>{
   rail.appendChild(c);chips[day.id]=c;
 });
 const state={sel:null,hover:null,ref:null};
-function flyHome(){map.fitBounds(cdmxBounds,{padding:pad(),pitch:58,bearing:-15,duration:rmq?0:1600})}
+function flyHome(){map.fitBounds(cdmxBounds,{padding:pad(),pitch:basePitch(),bearing:baseBearing(),duration:rmq?0:1600})}
 function flyDay(day){
   const b=new maplibregl.LngLatBounds();
   ROUTES[day.id].features.forEach(f=>f.geometry.coordinates.forEach(c=>b.extend(c)));
-  map.fitBounds(b,{padding:pad(),pitch:(day.id==='d5'||day.id==='d6')?35:55,duration:rmq?0:1600});
+  const p=mode==='3d'?((day.id==='d5'||day.id==='d6')?35:55):0;
+  map.fitBounds(b,{padding:pad(),pitch:p,duration:rmq?0:1600});
 }
 function select(id){
   if(state.sel===id){state.sel=null;render();flyHome();return}
