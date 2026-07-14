@@ -261,6 +261,8 @@ function bboxOf(coordsList){
   coordsList.forEach(c=>b.extend(c)); return b;
 }
 const cdmxBounds=bboxOf(Object.entries(STOPS).filter(([k])=>!PUEBLA.has(k)).map(([,s])=>s.c));
+// zoom-scaled line width: w0 px at z11 growing to w1 px at z16
+const lw=(w0,w1)=>['interpolate',['exponential',1.4],['zoom'],11,w0,16,w1];
 const PAD={top:90,left:80,right:360,bottom:110};
 const PADM={top:70,left:30,right:30,bottom:250};
 const pad=()=>innerWidth<840?PADM:PAD;
@@ -291,20 +293,20 @@ map.on('load',()=>{
       'fill-extrusion-base':['coalesce',['get','render_min_height'],0],
       'fill-extrusion-vertical-gradient':true
     }},firstSymbol);
-  // day routes
+  // day routes — widths scale with zoom so lines stay bright up close
   DAYS.forEach(day=>{
     map.addSource(day.id,{type:'geojson',data:ROUTES[day.id]});
     map.addLayer({id:day.id+'-glow',type:'line',source:day.id,
       layout:{'line-cap':'round','line-join':'round'},
-      paint:{'line-color':day.hex,'line-width':9,'line-opacity':.14,'line-blur':2}},firstSymbol);
+      paint:{'line-color':day.hex,'line-width':lw(9,22),'line-opacity':.14,'line-blur':2}},firstSymbol);
     map.addLayer({id:day.id+'-ride',type:'line',source:day.id,
       filter:['!=',['get','mode'],'walk'],
       layout:{'line-cap':'round','line-join':'round'},
-      paint:{'line-color':day.hex,'line-width':3,'line-opacity':.9}},firstSymbol);
+      paint:{'line-color':day.hex,'line-width':lw(3,8),'line-opacity':.9}},firstSymbol);
     map.addLayer({id:day.id+'-walk',type:'line',source:day.id,
       filter:['==',['get','mode'],'walk'],
       layout:{'line-cap':'round','line-join':'round'},
-      paint:{'line-color':day.hex,'line-width':3.5,'line-opacity':.95,'line-dasharray':[0,2]}},firstSymbol);
+      paint:{'line-color':day.hex,'line-width':lw(3.5,9),'line-opacity':.95,'line-dasharray':[0,2]}},firstSymbol);
     ['-glow','-ride','-walk'].forEach(sfx=>{
       map.on('mouseenter',day.id+sfx,()=>{map.getCanvas().style.cursor='pointer';setHover(day.id,null)});
       map.on('mouseleave',day.id+sfx,()=>{map.getCanvas().style.cursor='';setHover(null,null)});
@@ -428,8 +430,8 @@ function render(){
     map.setPaintProperty(day.id+'-glow','line-opacity',on?.28:dimmed?.03:.14);
     map.setPaintProperty(day.id+'-ride','line-opacity',on?1:dimmed?.07:.9);
     map.setPaintProperty(day.id+'-walk','line-opacity',on?1:dimmed?.07:.95);
-    map.setPaintProperty(day.id+'-ride','line-width',on?4.5:3);
-    map.setPaintProperty(day.id+'-walk','line-width',on?5:3.5);
+    map.setPaintProperty(day.id+'-ride','line-width',on?lw(4.5,11):lw(3,8));
+    map.setPaintProperty(day.id+'-walk','line-width',on?lw(5,12):lw(3.5,9));
   });
   DAYS.forEach(day=>chips[day.id].classList.toggle('on',act===day.id||state.sel===day.id));
   allChip.classList.toggle('on',!state.sel&&!act);
