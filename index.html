@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>CDMX · Ciudad de Cristal — Aug 8–16</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗺️</text></svg>">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@125,500;125,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+  :root{
+    --bg:#0a0f1e; --ink:#e9edf6; --mut:#93a0b8; --faint:#5f6a85;
+    --panel:rgba(12,19,36,.86); --line:rgba(150,200,255,.16);
+    --disp:"Archivo",-apple-system,sans-serif;
+    --body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body,#map{height:100%;overflow:hidden;background:var(--bg)}
+  body{color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased}
+  #map{position:fixed;inset:0}
+  /* ---- title plate ---- */
+  #plate{position:fixed;left:22px;top:20px;z-index:5;pointer-events:none;
+    padding:14px 18px 15px;border-radius:14px;background:var(--panel);
+    border:1px solid var(--line);backdrop-filter:blur(14px)}
+  #plate .eyebrow{font:500 10px/1 var(--mono);letter-spacing:.24em;color:var(--mut)}
+  #plate h1{font:600 30px/1 var(--disp);letter-spacing:.06em;margin:7px 0 5px}
+  #plate h1 b{font-weight:500;color:transparent;-webkit-text-stroke:1px rgba(160,215,255,.8)}
+  #plate .sub{font:400 11.5px/1.5 var(--body);color:var(--mut);max-width:250px}
+  /* ---- chips ---- */
+  #rail{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:6;
+    display:flex;gap:5px;padding:7px 8px;border-radius:14px;background:var(--panel);
+    border:1px solid var(--line);backdrop-filter:blur(14px);
+    max-width:calc(100vw - 24px);overflow-x:auto;scrollbar-width:none}
+  #rail::-webkit-scrollbar{display:none}
+  .chip{flex:none;display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:9px;
+    border:1px solid transparent;background:transparent;color:var(--mut);cursor:pointer;
+    font:500 11px/1.2 var(--body);transition:.15s;white-space:nowrap}
+  .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--c,#8fc5ff);box-shadow:0 0 6px var(--c,#8fc5ff)}
+  .chip small{display:block;font:500 8.5px/1 var(--mono);letter-spacing:.1em;color:var(--faint);margin-top:3px;text-transform:uppercase}
+  .chip:hover{color:var(--ink);background:rgba(150,200,255,.08)}
+  .chip.on{color:var(--ink);border-color:var(--c,rgba(150,200,255,.45));background:rgba(150,200,255,.09)}
+  .chip:focus-visible{outline:1.5px solid #55d6f0;outline-offset:2px}
+  /* ---- card ---- */
+  #card{position:fixed;right:20px;top:20px;z-index:5;width:312px;pointer-events:none;
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    backdrop-filter:blur(16px);overflow:hidden;
+    box-shadow:0 24px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
+    transition:opacity .22s}
+  #card .ph{position:relative;height:150px;background:linear-gradient(160deg,#16223f,#0b1122)}
+  #card .ph img{width:100%;height:100%;object-fit:cover;display:block;
+    mask-image:linear-gradient(to bottom,#000 62%,rgba(0,0,0,.25));
+    -webkit-mask-image:linear-gradient(to bottom,#000 62%,rgba(0,0,0,.25))}
+  #card .ph .credit{position:absolute;right:8px;bottom:5px;font:400 8.5px/1 var(--mono);
+    color:rgba(233,237,246,.55);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  #card .bd{padding:12px 15px 14px}
+  #card .kick{display:flex;align-items:center;gap:8px;font:600 9.5px/1 var(--mono);
+    letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
+  #card .kick i{width:9px;height:9px;border-radius:50%;background:var(--c,#8fc5ff);box-shadow:0 0 8px var(--c,#8fc5ff)}
+  #card h3{font:600 19px/1.15 var(--disp);letter-spacing:.02em;margin:7px 0 5px;text-wrap:balance}
+  #card .blurb{font:400 11.5px/1.55 var(--body);color:var(--mut);margin-bottom:8px}
+  #card ul{list-style:none;max-height:214px;overflow:hidden}
+  #card li{display:flex;gap:9px;padding:2.5px 0;font:400 11.5px/1.45 var(--body)}
+  #card li .tm{flex:none;width:46px;font:500 9.5px/1.7 var(--mono);color:var(--faint);
+    font-variant-numeric:tabular-nums;text-align:right}
+  #card li.sel{color:#fff}
+  #card li.sel .tm{color:var(--c,#8fc5ff)}
+  #card li .nm b{font-weight:600}
+  #card li .why{display:block;font-size:10.5px;color:var(--mut)}
+  #card .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+  #card .tag{font:500 9px/1 var(--mono);letter-spacing:.04em;padding:4px 7px;border-radius:99px;
+    border:1px solid rgba(120,225,170,.35);color:#8ce8b8}
+  #card .tag.todo{border-color:rgba(245,190,90,.4);color:#f2ca7e}
+  /* ---- markers ---- */
+  .pin{width:16px;height:16px;cursor:pointer;position:relative}
+  .pin i{position:absolute;inset:3px;border-radius:50%;background:var(--c);
+    box-shadow:0 0 8px var(--c),0 0 2px #fff inset}
+  .pin b{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--c);opacity:.75}
+  .pin.home{width:20px;height:20px}
+  .pin.home i{inset:4px;background:#fff;box-shadow:0 0 10px #cfe4ff}
+  .pin.home b{border-color:#fff}
+  .pin.dim{opacity:.18}
+  .pin.hot b{animation:pulse 1.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.7)}}
+  /* ---- misc chrome ---- */
+  #hint{position:fixed;right:20px;bottom:20px;z-index:5;font:500 9.5px/1.6 var(--mono);
+    letter-spacing:.1em;color:var(--faint);text-transform:uppercase;pointer-events:none;text-align:right}
+  .maplibregl-ctrl-bottom-left{bottom:14px}
+  .maplibregl-ctrl-attrib{background:rgba(10,15,30,.6)!important;color:#93a0b8!important;font-size:10px}
+  .maplibregl-ctrl-attrib a{color:#b9c6dd!important}
+  .maplibregl-ctrl-group{background:var(--panel)!important;border:1px solid var(--line);border-radius:10px!important;overflow:hidden}
+  .maplibregl-ctrl-group button{background:transparent!important}
+  .maplibregl-ctrl-group button .maplibregl-ctrl-icon{filter:invert(.85) hue-rotate(180deg)}
+  @media (max-width:840px){
+    #plate{left:12px;top:12px;padding:10px 13px}
+    #plate h1{font-size:22px}
+    #plate .sub{display:none}
+    #card{left:12px;right:12px;width:auto;top:auto;bottom:72px}
+    #card .ph{height:92px}
+    #card ul{max-height:118px}
+    #card .blurb{display:none}
+    #hint{display:none}
+    #rail{bottom:10px}
+  }
+  @media (prefers-reduced-motion:reduce){.pin.hot b{animation:none}}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<header id="plate">
+  <div class="eyebrow">AUG 8–16 · 2026 · MEXICO CITY</div>
+  <h1>CDMX <b>EN CRISTAL</b></h1>
+  <div class="sub">Nine days on the real map. Hover a day, a route, or a stop — drag to pan, right-drag to tilt &amp; orbit.</div>
+</header>
+<nav id="rail" aria-label="Days"></nav>
+<aside id="card" aria-live="polite"></aside>
+<div id="hint">right-drag · orbit &nbsp;/&nbsp; scroll · zoom &nbsp;/&nbsp; esc · reset<br>
+routes follow real streets — dotted = walking, solid = ride/bus</div>
+
+<script src="data.js"></script>
+<script>
+'use strict';
+/* ================= itinerary content ================= */
+const DAYS=[
+{id:'d1',n:1,date:'Sat · Aug 8',chip:'Arrive',hex:'#f5b84c',
+ title:'Wheels down, lights up',
+ blurb:'Land at 7:40 pm, prearranged car to Condesa, keep it light. Altitude night one — hydrate, easy on the mezcal.',
+ stops:[
+  {t:'4:05p',r:'mex',d:'Aeromexico JFK → MEX T2. Budget 60–90 min for immigration.'},
+  {t:'~8:45p',r:'uliv',d:'Prearranged driver or authorized airport taxi — no curbside rideshare at AICM.'},
+  {t:'10:00p',r:'lardo',d:'Late Mediterranean dinner on Agustín Melgar; backup is any taquería on Tamaulipas.'}],
+ tags:[['ok','ULIV Condesa booked'],['ok','Flight AM · JFK→MEX']]},
+{id:'d2',n:2,date:'Sun · Aug 9',chip:'Centro',hex:'#55d6f0',
+ title:'Centro Histórico loop',
+ blurb:'Quiet Sunday Centro — pyramid stones, Rivera murals, one drink under a bullet hole — then retreat to Condesa to acclimate.',
+ stops:[
+  {t:'8:00a',r:'rosetta',d:'Guava roll + coffee. Out by 8:45 to stay on rails.'},
+  {t:'9:15a',r:'zocalo',d:'The great square; note the cathedral’s tilted floor.'},
+  {t:'9:45a',r:'templo',d:'Mexica great temple + Coyolxauhqui monolith. ~90 min.'},
+  {t:'11:15a',r:'sep',d:'Rivera’s 235-panel mural cycle, free, two courtyards.'},
+  {t:'11:50a',r:'munal',d:'45–60 min highlights pass: Velasco, Orozco, Siqueiros.'},
+  {t:'1:15p',r:'opera',d:'One mezcal under Pancho Villa’s bullet hole (since 1876).'},
+  {t:'1:45p',r:'azul',d:'Mole lunch in a 17th-century courtyard. 10-min tolerance!'},
+  {t:'5:30p',r:'pmex',d:'Art-deco park loop after the siesta.'},
+  {t:'7:00p',r:'felina',d:'Sunset Negroni in Condesa.'},
+  {t:'8:00p',r:'meroma',d:'Open-kitchen Mediterranean-Mexican, Michelin rec.'},
+  {t:'10:30p',r:'tlecan',d:'Nightcap copita — #3 bar in North America.'}],
+ tags:[['ok','Azul Histórico 1:45p'],['ok','Meroma 8:00p']]},
+{id:'d3',n:3,date:'Mon · Aug 10',chip:'Roma laze',hex:'#9edc5a',
+ title:'The exhale day',
+ blurb:'Every museum is closed on Monday, so lean in: sleep late, park loops, masa, and 1 a.m. tacos. Nowhere to be.',
+ stops:[
+  {t:'8:30a',r:'pmex',d:'Slow perimeter + Parque España. Find a bench.'},
+  {t:'9:30a',r:'hule',d:'Coffee and records; Lardo if you want polish.'},
+  {t:'2:30p',r:'maizajo',d:'Nixtamal tortillería — the masa is the point.'},
+  {t:'8:00p',r:'parnita',d:'Botanas dinner, low key.'},
+  {t:'10:30p',r:'juanes',d:'Open till 3 am. Cash only.'}],
+ tags:[['todo','Book Máximo for Tue 7p']]},
+{id:'d4',n:4,date:'Tue · Aug 11',chip:'Coyoacán',hex:'#5b8cff',
+ title:'Frida’s cobalt south',
+ blurb:'Straight to Casa Azul for the 11:00 slot — QR codes screenshotted, at the gate by 10:45 — then Oaxacan mole and the market.',
+ stops:[
+  {t:'11:00a',r:'frida',d:'Booked, 2 tickets. 15-min arrival window; bring ID.'},
+  {t:'1:00p',r:'danz',d:'Mole negro + chapulines on the plaza. If unconfirmed, walk in at 12:30.'},
+  {t:'2:45p',r:'mcoyo',d:'Tostadas counter — a local institution.'},
+  {t:'3:30p',r:'trotsky',d:'Optional; the 1940 house-museum. Skip if rain rolls in.'},
+  {t:'7:00p',r:'maximo',d:'The nice dinner: one Michelin star, market-driven. Early seating — Puebla bus at 9 am.'}],
+ tags:[['ok','Casa Azul 11:00a'],['todo','Danzantes: confirm WhatsApp'],['todo','Máximo: book 7:00p']]},
+{id:'d5',n:5,date:'Wed · Aug 12',chip:'Puebla',hex:'#e77ef2',
+ title:'Talavera & nogada',
+ blurb:'9 am ADO east to Puebla. The Palafoxiana — first public library in the Americas — anchors the afternoon; chiles en nogada, in their birthplace, anchor the night.',
+ stops:[
+  {t:'9:00a',r:'tapo',d:'ADO first-class, ~2h20 to CAPU.'},
+  {t:'11:45a',r:'casareyna',d:'Drop bags at the boutique hotel; room from 3 pm.'},
+  {t:'12:30p',r:'sacristia',d:'House mole poblano in a colonial courtyard.'},
+  {t:'2:00p',r:'palafox',d:'45,000 volumes behind gilded cedar. Closes 5 pm.'},
+  {t:'3:00p',r:'rosario',d:'Gold-drenched Baroque chapel. Free.'},
+  {t:'3:45p',r:'zocalop',d:'Zócalo + cathedral, then Sapos antiques.'},
+  {t:'8:00p',r:'mural',d:'Chiles en nogada — August is peak season.'}],
+ tags:[['ok','Casareyna 1 night'],['ok','El Mural 8:00p'],['todo','Buy ADO tickets']]},
+{id:'d6',n:6,date:'Thu · Aug 13',chip:'Cholula',hex:'#ff9950',
+ title:'Pyramid, then home',
+ blurb:'The world’s biggest pyramid by volume, a church on its crown, Popocatépetl behind — then the noon bus lands you in ULIV’s 3–4 pm window.',
+ stops:[
+  {t:'9:00a',r:'cholula',d:'Open area, site museum, church climb. Leave by 10:15 — the bus rules the day.'},
+  {t:'12:00p',r:'capu',d:'ADO back to TAPO, ~2:20 pm arrival.'},
+  {t:'3:15p',r:'uliv',d:'Check back in, unpack, feet up.'},
+  {t:'6:30p',r:'baltra',d:'Aperitivo — go early, it fills.'},
+  {t:'8:00p',r:'blanco',d:'Or Expendio de Maíz / Atarantados. Keep it easy.'}],
+ tags:[['ok','ULIV stay 2'],['todo','ADO 12:00p — the linchpin']]},
+{id:'d7',n:7,date:'Fri · Aug 14',chip:'Chapultepec',hex:'#43dfa6',
+ title:'Castle, Sun Stone, Polanco',
+ blurb:'Castillo at the 9 am open, then give Antropología the middle of the day — Mexica, Maya, Oaxaca halls only. Don’t conquer the building.',
+ stops:[
+  {t:'9:00a',r:'castillo',d:'The only royal castle in the Americas; Reforma views.'},
+  {t:'11:00a',r:'antro',d:'Sun Stone + Pakal’s tomb. 2.5 hrs, ground floor first.'},
+  {t:'1:45p',r:'turix',d:'A 12-ft counter that does only cochinita pibil. Cash.'},
+  {t:'3:00p',r:'soumaya',d:'Optional: the silver swirl, free, while you’re up here.'},
+  {t:'8:30p',r:'carinito',d:'Thai-Mexican tacos, Bib Gourmand, no reservations.'}],
+ tags:[['todo','Clásicos: appt or cut']]},
+{id:'d8',n:8,date:'Sat · Aug 15',chip:'Roma crawl',hex:'#ff7d92',
+ title:'Tostadas & farewell pasta',
+ blurb:'Last full day stays local: slow morning, pack before lunch, tuna tostadas at the icon, handmade pasta to close it out.',
+ stops:[
+  {t:'9:30a',r:'rosetta',d:'Or Lalo! — slow coffee near home.'},
+  {t:'1:30p',r:'contramar',d:'Tuna tostadas + pescado a la talla. THE seafood lunch.'},
+  {t:'6:30p',r:'baltra',d:'Optional aperitivo.'},
+  {t:'7:30p',r:'sartoria',d:'Marco Carboni’s pasta; Michelin rec. 10-min tolerance.'}],
+ tags:[['ok','Sartoria 7:30p'],['todo','Contramar: book ~Jul 16']]},
+{id:'d9',n:9,date:'Sun · Aug 16',chip:'Depart',hex:'#b48cff',
+ title:'Dawn run to T2',
+ blurb:'4:30 alarm, 5:00 car, wheels up 8:40. Passports, tickets, chargers in one pile the night before.',
+ stops:[
+  {t:'5:00a',r:'uliv',d:'Uber at dawn, ~35 min east.'},
+  {t:'8:40a',r:'mex',d:'AM402 → JFK 4:02 pm. Fin.'}],
+ tags:[['ok','Flight AM402']]},
+];
+const PUEBLA=new Set(['capu','casareyna','sacristia','palafox','rosario','zocalop','mural','cholula']);
+
+/* ================= map ================= */
+const rmq=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const map=new maplibregl.Map({
+  container:'map', style:'https://tiles.openfreemap.org/styles/dark',
+  center:[-99.163,19.41], zoom:12.4, pitch:58, bearing:-15,
+  maxPitch:72, antialias:true, attributionControl:{compact:true}
+});
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-left');
+map.dragRotate.enable(); map.touchZoomRotate.enableRotation();
+map.getCanvas().style.cursor='';
+
+function bboxOf(coordsList){
+  const b=new maplibregl.LngLatBounds();
+  coordsList.forEach(c=>b.extend(c)); return b;
+}
+const cdmxBounds=bboxOf(Object.entries(STOPS).filter(([k])=>!PUEBLA.has(k)).map(([,s])=>s.c));
+const PAD={top:90,left:80,right:360,bottom:110};
+const PADM={top:70,left:30,right:30,bottom:250};
+const pad=()=>innerWidth<840?PADM:PAD;
+
+map.on('load',()=>{
+  const style=map.getStyle();
+  const srcName=Object.keys(style.sources).find(s=>style.sources[s].type==='vector');
+  const firstSymbol=style.layers.find(l=>l.type==='symbol')?.id;
+  // hide flat building fills; add glass extrusions
+  style.layers.forEach(l=>{
+    if(l.type==='fill'&&/building/.test(l.id)) map.setLayoutProperty(l.id,'visibility','none');
+  });
+  map.addLayer({
+    id:'glass-buildings',type:'fill-extrusion',source:srcName,'source-layer':'building',minzoom:13,
+    paint:{
+      'fill-extrusion-color':'#2b4468',
+      'fill-extrusion-opacity':0.44,
+      'fill-extrusion-height':['coalesce',['get','render_height'],11],
+      'fill-extrusion-base':['coalesce',['get','render_min_height'],0],
+      'fill-extrusion-vertical-gradient':true
+    }},firstSymbol);
+  // day routes
+  DAYS.forEach(day=>{
+    map.addSource(day.id,{type:'geojson',data:ROUTES[day.id]});
+    map.addLayer({id:day.id+'-glow',type:'line',source:day.id,
+      layout:{'line-cap':'round','line-join':'round'},
+      paint:{'line-color':day.hex,'line-width':9,'line-opacity':.14,'line-blur':2}},firstSymbol);
+    map.addLayer({id:day.id+'-ride',type:'line',source:day.id,
+      filter:['!=',['get','mode'],'walk'],
+      layout:{'line-cap':'round','line-join':'round'},
+      paint:{'line-color':day.hex,'line-width':3,'line-opacity':.9}},firstSymbol);
+    map.addLayer({id:day.id+'-walk',type:'line',source:day.id,
+      filter:['==',['get','mode'],'walk'],
+      layout:{'line-cap':'round','line-join':'round'},
+      paint:{'line-color':day.hex,'line-width':3.5,'line-opacity':.95,'line-dasharray':[0,2]}},firstSymbol);
+    ['-glow','-ride','-walk'].forEach(sfx=>{
+      map.on('mouseenter',day.id+sfx,()=>{map.getCanvas().style.cursor='pointer';setHover(day.id,null)});
+      map.on('mouseleave',day.id+sfx,()=>{map.getCanvas().style.cursor='';setHover(null,null)});
+      map.on('click',day.id+sfx,e=>{e.preventDefault?.();select(day.id)});
+    });
+  });
+  if(!rmq) map.fitBounds(cdmxBounds,{padding:pad(),pitch:58,bearing:-15,duration:2200});
+  else map.fitBounds(cdmxBounds,{padding:pad(),pitch:58,bearing:-15,duration:0});
+});
+// some embedded webviews report a stale container size at init and never
+// notify the ResizeObserver — nudge for the first few seconds, refitting
+// the overview as long as the user hasn't taken over
+let userMoved=false;
+['pointerdown','wheel','touchstart'].forEach(ev=>map.getCanvas().addEventListener(ev,()=>{userMoved=true},{passive:true}));
+addEventListener('resize',()=>map.resize());
+{let n=0,w=0,h=0;
+ const iv=setInterval(()=>{
+   const c=map.getCanvas();
+   map.resize();
+   if((c.clientWidth!==w||c.clientHeight!==h)){
+     w=c.clientWidth;h=c.clientHeight;
+     if(!userMoved&&!state.sel&&map.loaded())
+       map.fitBounds(cdmxBounds,{padding:pad(),pitch:58,bearing:-15,duration:0});
+   }
+   if(++n>=12)clearInterval(iv)},400);}
+
+/* ================= markers ================= */
+const owner={};
+DAYS.forEach(d=>d.stops.forEach(s=>{(owner[s.r]=owner[s.r]||[]).push(d.id)}));
+const markers=[];
+Object.keys(owner).forEach(ref=>{
+  const s=STOPS[ref],days=owner[ref],home=ref==='uliv';
+  const day=DAYS.find(d=>d.id===days[0]);
+  const el=document.createElement('div');
+  el.className='pin'+(home?' home':'');
+  el.style.setProperty('--c',home?'#fff':day.hex);
+  el.title=s.label;
+  el.addEventListener('pointerenter',()=>{
+    const use=(state.sel&&days.includes(state.sel))?state.sel:
+              (state.hover&&days.includes(state.hover))?state.hover:days[0];
+    setHover(use,ref)});
+  el.addEventListener('pointerleave',()=>setHover(null,null));
+  el.addEventListener('click',e=>{e.stopPropagation();select(days[0])});
+  new maplibregl.Marker({element:el}).setLngLat(s.c).addTo(map);
+  markers.push({el,ref,days});
+});
+
+/* ================= card ================= */
+const card=document.getElementById('card');
+const tagHtml=t=>`<span class="tag ${t[0]==='ok'?'':'todo'}">${t[0]==='ok'?'✓ ':'⚠ '}${t[1]}</span>`;
+function photoHtml(day){
+  const p=PHOTOS[day.id]||{};
+  return p.src?`<div class="ph"><img src="${p.src}" alt="" loading="lazy">
+    <span class="credit">${p.credit}</span></div>`
+   :`<div class="ph"></div>`;
+}
+function showDay(day,ref){
+  card.style.setProperty('--c',day.hex);
+  card.innerHTML=`${photoHtml(day)}
+   <div class="bd">
+     <div class="kick"><i></i>Day ${day.n} · ${day.date}</div>
+     <h3>${day.title}</h3>
+     <p class="blurb">${day.blurb}</p>
+     <ul>${day.stops.map(s=>`
+       <li class="${s.r===ref?'sel':''}"><span class="tm">${s.t}</span>
+        <span class="nm"><b>${STOPS[s.r].label}</b>${s.r===ref?`<span class="why">${s.d}</span>`:''}</span></li>`).join('')}
+     </ul>
+     <div class="tags">${day.tags.map(tagHtml).join('')}</div>
+   </div>`;
+}
+function showIntro(){
+  card.style.setProperty('--c','#8fc5ff');
+  card.innerHTML=`
+   <div class="bd">
+     <div class="kick"><i></i>Trip atlas</div>
+     <h3>Nine days, five barrios, one bus east</h3>
+     <p class="blurb">Home base is ULIV Condesa (the white beacon). Every line follows the real streets —
+     dotted means walking, solid means a ride or the ADO bus east to Puebla &amp; Cholula.</p>
+     <ul>
+       <li><span class="tm">9</span><span class="nm"><b>days</b> · Aug 8–16</span></li>
+       <li><span class="tm">33</span><span class="nm"><b>stops</b> · CDMX + Puebla + Cholula</span></li>
+       <li><span class="tm">5</span><span class="nm"><b>tables booked</b> · 3 still to chase</span></li>
+     </ul>
+     <div class="tags"><span class="tag">✓ Casa Azul 11:00a Tue</span><span class="tag todo">⚠ Contramar opens ~Jul 16</span></div>
+   </div>`;
+}
+
+/* ================= chips + state ================= */
+const rail=document.getElementById('rail');
+const chips={};
+const allChip=document.createElement('button');
+allChip.className='chip on';allChip.innerHTML=`<span class="dot"></span><span>Todos<small>full trip</small></span>`;
+allChip.addEventListener('click',()=>{state.sel=null;render();flyHome()});
+rail.appendChild(allChip);
+DAYS.forEach(day=>{
+  const c=document.createElement('button');c.className='chip';c.style.setProperty('--c',day.hex);
+  c.innerHTML=`<span class="dot"></span><span>Day ${day.n}<small>${day.date.split(' · ')[0]} · ${day.chip}</small></span>`;
+  c.addEventListener('pointerenter',()=>setHover(day.id,null));
+  c.addEventListener('pointerleave',()=>setHover(null,null));
+  c.addEventListener('click',()=>select(day.id));
+  rail.appendChild(c);chips[day.id]=c;
+});
+const state={sel:null,hover:null,ref:null};
+function flyHome(){map.fitBounds(cdmxBounds,{padding:pad(),pitch:58,bearing:-15,duration:rmq?0:1600})}
+function flyDay(day){
+  const b=new maplibregl.LngLatBounds();
+  ROUTES[day.id].features.forEach(f=>f.geometry.coordinates.forEach(c=>b.extend(c)));
+  map.fitBounds(b,{padding:pad(),pitch:(day.id==='d5'||day.id==='d6')?35:55,duration:rmq?0:1600});
+}
+function select(id){
+  if(state.sel===id){state.sel=null;render();flyHome();return}
+  state.sel=id;render();flyDay(DAYS.find(d=>d.id===id));
+}
+function setHover(id,ref){state.hover=id;state.ref=ref;render()}
+function render(){
+  const act=state.hover||state.sel;
+  if(map.getLayer('d1-glow')) DAYS.forEach(day=>{
+    const on=act===day.id, dimmed=act&&!on;
+    map.setPaintProperty(day.id+'-glow','line-opacity',on?.28:dimmed?.03:.14);
+    map.setPaintProperty(day.id+'-ride','line-opacity',on?1:dimmed?.07:.9);
+    map.setPaintProperty(day.id+'-walk','line-opacity',on?1:dimmed?.07:.95);
+    map.setPaintProperty(day.id+'-ride','line-width',on?4.5:3);
+    map.setPaintProperty(day.id+'-walk','line-width',on?5:3.5);
+  });
+  DAYS.forEach(day=>chips[day.id].classList.toggle('on',act===day.id||state.sel===day.id));
+  allChip.classList.toggle('on',!state.sel&&!act);
+  markers.forEach(m=>{
+    const mine=act&&m.days.includes(act);
+    m.el.classList.toggle('dim',!!act&&!mine&&m.ref!=='uliv');
+    m.el.classList.toggle('hot',!!mine&&state.ref===m.ref);
+  });
+  if(act)showDay(DAYS.find(d=>d.id===act),state.ref);else showIntro();
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){state.sel=null;state.hover=null;render();flyHome()}});
+render();
+</script>
+</body>
+</html>
