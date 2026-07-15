@@ -91,18 +91,24 @@
   #card .tag{font:500 9px/1 var(--mono);letter-spacing:.04em;padding:4px 7px;border-radius:99px;
     border:1px solid rgba(120,225,170,.35);color:#8ce8b8}
   #card .tag.todo{border-color:rgba(245,190,90,.4);color:#f2ca7e}
-  /* ---- markers ---- */
-  .pin{width:26px;height:26px;cursor:pointer;position:relative}
-  .pin i{position:absolute;inset:6px;border-radius:50%;background:var(--c);
-    border:2px solid rgba(255,255,255,.92);
-    box-shadow:0 0 12px var(--c),0 2px 6px rgba(0,0,0,.5)}
-  .pin b{position:absolute;inset:0;border-radius:50%;border:2px solid var(--c);opacity:.8}
-  .pin.home{width:34px;height:34px}
-  .pin.home i{inset:8px;background:#fff;box-shadow:0 0 14px #cfe4ff,0 2px 6px rgba(0,0,0,.5)}
-  .pin.home b{border-color:#fff}
-  .pin.dim{opacity:.18}
-  .pin.hot b{animation:pulse 1.5s ease-in-out infinite}
-  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.6)}}
+  /* ---- markers: circular photo thumbnails, scaled inversely with zoom ---- */
+  .pin{width:0;height:0;cursor:pointer}
+  .pin .face{position:absolute;left:0;top:0;width:var(--ps,42px);height:var(--ps,42px);
+    transform:translate(-50%,-50%) scale(var(--pz,1));transform-origin:center;
+    border-radius:50%;background:var(--c) center/cover no-repeat;
+    border:2.5px solid var(--c);
+    box-shadow:0 0 0 2px rgba(255,255,255,.92),0 3px 9px rgba(0,0,0,.55),0 0 12px var(--c);
+    transition:width .14s,height .14s,box-shadow .14s}
+  .pin .face::after{content:"";position:absolute;inset:0;border-radius:50%;
+    box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.35)}
+  .pin.home{--ps:52px}
+  .pin.home .face{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.95),0 4px 12px rgba(0,0,0,.55),0 0 16px #cfe4ff}
+  .pin.dim{opacity:.28}
+  .pin.hot{z-index:9}
+  .pin.hot .face{--ps:58px;box-shadow:0 0 0 3px #fff,0 6px 18px rgba(0,0,0,.6),0 0 22px var(--c)}
+  .pin.home.hot .face{--ps:64px}
+  body.light .pin .face{box-shadow:0 0 0 2px rgba(255,255,255,.95),0 3px 9px rgba(20,35,60,.35),0 0 10px var(--c)}
+  body.light .pin.hot .face{box-shadow:0 0 0 3px #fff,0 6px 18px rgba(20,35,60,.4),0 0 20px var(--c)}
   /* ---- stop tooltip (popup at the point on the line) ---- */
   .stoptip{pointer-events:none}
   .stoptip .maplibregl-popup-tip{display:none}
@@ -111,6 +117,8 @@
     backdrop-filter:blur(14px);padding:9px 12px 10px;
     box-shadow:0 14px 34px rgba(0,0,0,.4);font-family:var(--body)}
   .stoptip .tt{display:block;max-width:224px}
+  .stoptip .tt-img{display:block;width:100%;height:96px;margin-bottom:8px;border-radius:8px;
+    background:var(--tc) center/cover no-repeat;box-shadow:0 2px 8px rgba(0,0,0,.35)}
   .stoptip .tt-kick{display:flex;align-items:center;gap:6px;margin-bottom:5px;
     font:600 8.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
   .stoptip .tt-kick i{width:8px;height:8px;border-radius:50%;flex:none;
@@ -160,7 +168,7 @@
     #card .blurb{display:none}
     #rail,#railShow{bottom:10px}
   }
-  @media (prefers-reduced-motion:reduce){.pin.hot b{animation:none}}
+  @media (prefers-reduced-motion:reduce){.pin .face{transition:none}}
 </style>
 </head>
 <body>
@@ -434,14 +442,18 @@ const markers=[];
 // which day's context to use for a shared stop: selected > hovered > first
 const dayFor=days=>(state.sel&&days.includes(state.sel))?state.sel:
                    (state.hover&&days.includes(state.hover))?state.hover:days[0];
-const tip=new maplibregl.Popup({closeButton:false,closeOnClick:false,offset:16,
-  className:'stoptip',maxWidth:'240px'});
+// image for a stop: its own landmark photo, else the day's photo
+const imgFor=(ref,dayId)=>(STOP_IMG[ref]&&STOP_IMG[ref].src)||(PHOTOS[dayId]&&PHOTOS[dayId].src)||'';
+const tip=new maplibregl.Popup({closeButton:false,closeOnClick:false,offset:18,
+  className:'stoptip',maxWidth:'250px'});
 function showTip(ref,days){
   const day=DAYS.find(d=>d.id===dayFor(days));
   const s=day.stops.find(x=>x.r===ref); if(!s)return;
   const c=ref==='uliv'?'var(--ink)':day.hex;
+  const img=imgFor(ref,day.id);
+  const imgHtml=img?`<span class="tt-img" style="background-image:url('${img}')"></span>`:'';
   tip.setLngLat(STOPS[ref].c).setHTML(
-    `<div class="tt" style="--tc:${c}"><span class="tt-kick"><i></i>${s.t} · Day ${day.n}</span>`+
+    `<div class="tt" style="--tc:${c}">${imgHtml}<span class="tt-kick"><i></i>${s.t} · Day ${day.n}</span>`+
     `<b>${STOPS[ref].label}</b><span class="tt-d">${s.d}</span></div>`).addTo(map);
 }
 Object.keys(owner).forEach(ref=>{
@@ -451,12 +463,24 @@ Object.keys(owner).forEach(ref=>{
   el.className='pin'+(home?' home':'');
   el.style.setProperty('--c',home?'#fff':day.hex);
   el.setAttribute('aria-label',s.label);
+  const face=document.createElement('div');face.className='face';
+  const img=imgFor(ref,days[0]);
+  if(img)face.style.backgroundImage=`url("${img}")`;
+  el.appendChild(face);
   el.addEventListener('pointerenter',()=>{setHover(dayFor(days),ref);showTip(ref,days)});
   el.addEventListener('pointerleave',()=>{setHover(null,null);tip.remove()});
   el.addEventListener('click',e=>{e.stopPropagation();select(days[0])});
   new maplibregl.Marker({element:el}).setLngLat(s.c).addTo(map);
   markers.push({el,ref,days});
 });
+// pins grow as you zoom out so they stay visible over the whole city
+function updatePinScale(){
+  const z=map.getZoom();
+  const s=Math.max(0.72,Math.min(1.6,1.5+(z-11)*(0.8-1.5)/5));
+  document.body.style.setProperty('--pz',s.toFixed(3));
+}
+map.on('zoom',updatePinScale);
+updatePinScale();
 
 /* ================= card ================= */
 const card=document.getElementById('card');
