@@ -294,7 +294,7 @@ function setTheme(t){
   try{localStorage.setItem('cdmx-theme',t)}catch(e){}
   document.body.classList.toggle('light',t==='light');
   paintThemeChips();
-  map.setStyle(STYLES[t]);
+  map.setStyle(STYLES[t],{diff:false}); // full reload: deterministic teardown, styledata re-adds our layers
 }
 document.getElementById('tDark').addEventListener('click',()=>setTheme('dark'));
 document.getElementById('tLight').addEventListener('click',()=>setTheme('light'));
@@ -312,62 +312,65 @@ const PADM={top:70,left:30,right:30,bottom:250};
 const pad=()=>innerWidth<840?PADM:PAD;
 
 function addCustomLayers(){
-  if(map.getLayer('glass-buildings'))return;
   const style=map.getStyle();
-  const srcName=Object.keys(style.sources).find(s=>style.sources[s].type==='vector');
   const firstSymbol=style.layers.find(l=>l.type==='symbol')?.id;
-  // hide flat building fills; add glass extrusions
-  style.layers.forEach(l=>{
-    if(l.type==='fill'&&/building/.test(l.id)) map.setLayoutProperty(l.id,'visibility','none');
-  });
-  // quiet cartography: street names & shields only when zoomed in close,
-  // POI labels closer still, house numbers never — keep place names as-is
-  style.layers.forEach(l=>{
-    if(l.type!=='symbol')return;
-    const sl=l['source-layer'];
-    if(sl==='transportation_name') map.setLayerZoomRange(l.id,Math.max(l.minzoom||0,14),24);
-    else if(sl==='poi') map.setLayerZoomRange(l.id,Math.max(l.minzoom||0,15),24);
-    else if(sl==='housenumber') map.setLayoutProperty(l.id,'visibility','none');
-  });
-  map.addLayer({
-    id:'glass-buildings',type:'fill-extrusion',source:srcName,'source-layer':'building',minzoom:13,
-    paint:{
-      'fill-extrusion-color':theme==='light'?'#b7c6d8':'#2b4468',
-      'fill-extrusion-opacity':theme==='light'?0.55:0.44,
-      'fill-extrusion-height':['coalesce',['get','render_height'],11],
-      'fill-extrusion-base':['coalesce',['get','render_min_height'],0],
-      'fill-extrusion-vertical-gradient':true
-    }},firstSymbol);
-  // day routes — widths scale with zoom so lines stay bright up close
-  DAYS.forEach(day=>{
-    map.addSource(day.id,{type:'geojson',data:ROUTES[day.id]});
-    map.addLayer({id:day.id+'-glow',type:'line',source:day.id,
-      layout:{'line-cap':'round','line-join':'round'},
-      paint:{'line-color':day.hex,'line-width':lw(9,22),'line-opacity':.14,'line-blur':2}},firstSymbol);
-    map.addLayer({id:day.id+'-ride',type:'line',source:day.id,
-      filter:['!=',['get','mode'],'walk'],
-      layout:{'line-cap':'round','line-join':'round'},
-      paint:{'line-color':day.hex,'line-width':lw(3,8),'line-opacity':.9}},firstSymbol);
-    map.addLayer({id:day.id+'-walk',type:'line',source:day.id,
-      filter:['==',['get','mode'],'walk'],
-      layout:{'line-cap':'round','line-join':'round'},
-      paint:{'line-color':day.hex,'line-width':lw(3.5,9),'line-opacity':.95,'line-dasharray':[0,2]}},firstSymbol);
-  });
-  map.setLayoutProperty('glass-buildings','visibility',mode==='3d'?'visible':'none');
+  // quiet cartography + hide flat building fills — non-fatal if a layer id moves
+  try{
+    style.layers.forEach(l=>{
+      if(l.type==='fill'&&/building/.test(l.id)) map.setLayoutProperty(l.id,'visibility','none');
+      if(l.type!=='symbol')return;
+      const sl=l['source-layer'];
+      if(sl==='transportation_name') map.setLayerZoomRange(l.id,Math.max(l.minzoom||0,14),24);
+      else if(sl==='poi') map.setLayerZoomRange(l.id,Math.max(l.minzoom||0,15),24);
+      else if(sl==='housenumber') map.setLayoutProperty(l.id,'visibility','none');
+    });
+  }catch(e){console.warn('label pass:',e)}
+  // glass extrusions — a failure here must never take the routes down with it
+  try{
+    const srcName=Object.keys(style.sources).find(s=>style.sources[s].type==='vector');
+    if(srcName&&!map.getLayer('glass-buildings')) map.addLayer({
+      id:'glass-buildings',type:'fill-extrusion',source:srcName,'source-layer':'building',minzoom:13,
+      paint:{
+        'fill-extrusion-color':theme==='light'?'#b7c6d8':'#2b4468',
+        'fill-extrusion-opacity':theme==='light'?0.55:0.44,
+        'fill-extrusion-height':['coalesce',['get','render_height'],11],
+        'fill-extrusion-base':['coalesce',['get','render_min_height'],0],
+        'fill-extrusion-vertical-gradient':true
+      }},firstSymbol);
+    if(map.getLayer('glass-buildings'))
+      map.setLayoutProperty('glass-buildings','visibility',mode==='3d'?'visible':'none');
+  }catch(e){console.warn('buildings:',e)}
+  // day routes: casing outline (theme-contrast) under a full-opacity core,
+  // widths scale with zoom — every add is guarded so re-runs are idempotent
+  const casing=theme==='light'?'rgba(255,255,255,.95)':'rgba(8,12,24,.9)';
+  DAYS.forEach(day=>{try{
+    if(!map.getSource(day.id)) map.addSource(day.id,{type:'geojson',data:ROUTES[day.id]});
+    const add=(id,def)=>{if(!map.getLayer(id))map.addLayer(Object.assign(
+      {id,type:'line',source:day.id,layout:{'line-cap':'round','line-join':'round'}},def),firstSymbol)};
+    add(day.id+'-glow',{paint:{'line-color':day.hex,'line-width':lw(10,26),'line-opacity':.18,'line-blur':2}});
+    add(day.id+'-case-ride',{filter:['!=',['get','mode'],'walk'],
+      paint:{'line-color':casing,'line-width':lw(6,13),'line-opacity':.9}});
+    add(day.id+'-case-walk',{filter:['==',['get','mode'],'walk'],
+      paint:{'line-color':casing,'line-width':lw(7,14),'line-opacity':.9,'line-dasharray':[0,2]}});
+    add(day.id+'-ride',{filter:['!=',['get','mode'],'walk'],
+      paint:{'line-color':day.hex,'line-width':lw(3.5,9),'line-opacity':1}});
+    add(day.id+'-walk',{filter:['==',['get','mode'],'walk'],
+      paint:{'line-color':day.hex,'line-width':lw(4,10),'line-opacity':1,'line-dasharray':[0,2]}});
+  }catch(e){console.warn('route',day.id,e)}});
 }
 // re-add custom layers whenever a style swap wipes them; styledata re-fires
 // during our own mutations, so a re-entrancy flag prevents recursion
 let addingLayers=false;
 function ensureLayers(){
-  if(addingLayers||!map.isStyleLoaded()||map.getLayer('glass-buildings'))return;
+  if(addingLayers||!map.isStyleLoaded()||map.getLayer('d1-glow'))return;
   addingLayers=true;
-  try{addCustomLayers();render()}catch(e){}finally{addingLayers=false}
+  try{addCustomLayers();render()}catch(e){console.warn('ensureLayers:',e)}finally{addingLayers=false}
 }
 map.on('styledata',ensureLayers);
 map.on('load',()=>{
   ensureLayers();
   // layer-scoped events survive setStyle, so wire them once
-  DAYS.forEach(day=>['-glow','-ride','-walk'].forEach(sfx=>{
+  DAYS.forEach(day=>['-glow','-case-ride','-case-walk','-ride','-walk'].forEach(sfx=>{
     map.on('mouseenter',day.id+sfx,()=>{map.getCanvas().style.cursor='pointer';setHover(day.id,null)});
     map.on('mouseleave',day.id+sfx,()=>{map.getCanvas().style.cursor='';setHover(null,null)});
     map.on('click',day.id+sfx,e=>{e.preventDefault?.();select(day.id)});
@@ -484,11 +487,15 @@ function render(){
   const act=state.hover||state.sel;
   if(map.getLayer('d1-glow')) DAYS.forEach(day=>{
     const on=act===day.id, dimmed=act&&!on;
-    map.setPaintProperty(day.id+'-glow','line-opacity',on?.28:dimmed?.03:.14);
-    map.setPaintProperty(day.id+'-ride','line-opacity',on?1:dimmed?.07:.9);
-    map.setPaintProperty(day.id+'-walk','line-opacity',on?1:dimmed?.07:.95);
-    map.setPaintProperty(day.id+'-ride','line-width',on?lw(4.5,11):lw(3,8));
-    map.setPaintProperty(day.id+'-walk','line-width',on?lw(5,12):lw(3.5,9));
+    map.setPaintProperty(day.id+'-glow','line-opacity',on?.32:dimmed?.04:.18);
+    map.setPaintProperty(day.id+'-ride','line-opacity',on?1:dimmed?.07:1);
+    map.setPaintProperty(day.id+'-walk','line-opacity',on?1:dimmed?.07:1);
+    map.setPaintProperty(day.id+'-case-ride','line-opacity',on?1:dimmed?.05:.9);
+    map.setPaintProperty(day.id+'-case-walk','line-opacity',on?1:dimmed?.05:.9);
+    map.setPaintProperty(day.id+'-ride','line-width',on?lw(5,12):lw(3.5,9));
+    map.setPaintProperty(day.id+'-walk','line-width',on?lw(5.5,13):lw(4,10));
+    map.setPaintProperty(day.id+'-case-ride','line-width',on?lw(8,16):lw(6,13));
+    map.setPaintProperty(day.id+'-case-walk','line-width',on?lw(9,17):lw(7,14));
   });
   DAYS.forEach(day=>chips[day.id].classList.toggle('on',act===day.id||state.sel===day.id));
   allChip.classList.toggle('on',!state.sel&&!act);
