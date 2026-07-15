@@ -335,7 +335,11 @@ function setTheme(t){
   try{localStorage.setItem('cdmx-theme',t)}catch(e){}
   document.body.classList.toggle('light',t==='light');
   paintThemeChips();
-  map.setStyle(STYLES[t],{diff:false}); // full reload: deterministic teardown, styledata re-adds our layers
+  map.setStyle(STYLES[t],{diff:false}); // full reload: deterministic teardown
+  // styledata/idle listeners re-add our layers; poll as a fallback in case
+  // neither fires cleanly after the swap
+  let tries=0;
+  const iv=setInterval(()=>{ensureLayers();if(map.getLayer('d1-glow')||++tries>40)clearInterval(iv)},150);
 }
 document.getElementById('tDark').addEventListener('click',()=>setTheme('dark'));
 document.getElementById('tLight').addEventListener('click',()=>setTheme('light'));
@@ -399,15 +403,25 @@ function addCustomLayers(){
       paint:{'line-color':day.hex,'line-width':lw(4,10),'line-opacity':1,'line-dasharray':[0,2]}});
   }catch(e){console.warn('route',day.id,e)}});
 }
-// re-add custom layers whenever a style swap wipes them; styledata re-fires
-// during our own mutations, so a re-entrancy flag prevents recursion
+// Re-add custom layers whenever a style swap wipes them. Do NOT gate on
+// map.isStyleLoaded(): after setStyle that flag can stay false indefinitely,
+// yet addCustomLayers() succeeds anyway (geojson route layers don't need the
+// base style, and the building layer just retries until its source is ready).
+// Gating on it was the bug: routes never came back on theme switch.
+// "Done" = both routes AND buildings present, so we keep retrying until whole.
 let addingLayers=false;
 function ensureLayers(){
-  if(addingLayers||!map.isStyleLoaded()||map.getLayer('d1-glow'))return;
+  if(addingLayers)return;
+  if(map.getLayer('d1-glow')&&map.getLayer('glass-buildings'))return;
   addingLayers=true;
-  try{addCustomLayers();render()}catch(e){console.warn('ensureLayers:',e)}finally{addingLayers=false}
+  try{addCustomLayers();if(map.getLayer('d1-glow'))render()}
+  catch(e){console.warn('ensureLayers:',e)}
+  finally{addingLayers=false}
 }
+// fire on every relevant signal; addCustomLayers is idempotent per layer
 map.on('styledata',ensureLayers);
+map.on('idle',ensureLayers);
+map.on('sourcedata',ensureLayers);
 map.on('load',()=>{
   ensureLayers();
   // layer-scoped events survive setStyle, so wire them once
