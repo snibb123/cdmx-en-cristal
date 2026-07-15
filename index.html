@@ -103,6 +103,21 @@
   .pin.dim{opacity:.18}
   .pin.hot b{animation:pulse 1.5s ease-in-out infinite}
   @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.6)}}
+  /* ---- stop tooltip (popup at the point on the line) ---- */
+  .stoptip{pointer-events:none}
+  .stoptip .maplibregl-popup-tip{display:none}
+  .stoptip .maplibregl-popup-content{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    backdrop-filter:blur(14px);padding:9px 12px 10px;
+    box-shadow:0 14px 34px rgba(0,0,0,.4);font-family:var(--body)}
+  .stoptip .tt{display:block;max-width:224px}
+  .stoptip .tt-kick{display:flex;align-items:center;gap:6px;margin-bottom:5px;
+    font:600 8.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+  .stoptip .tt-kick i{width:8px;height:8px;border-radius:50%;flex:none;
+    background:var(--tc);box-shadow:0 0 7px var(--tc)}
+  .stoptip .tt b{display:block;margin-bottom:3px;color:var(--ink);
+    font:600 13px/1.2 var(--disp);letter-spacing:.01em}
+  .stoptip .tt-d{display:block;font:400 11px/1.45 var(--body);color:var(--mut)}
   /* ---- 2D/3D + theme toggles ---- */
   #ctrls{position:fixed;left:22px;top:162px;z-index:6;display:flex;gap:8px}
   #modes,#themes{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;
@@ -412,22 +427,32 @@ addEventListener('resize',()=>map.resize());
    }
    if(++n>=12)clearInterval(iv)},400);}
 
-/* ================= markers ================= */
+/* ================= markers + stop tooltips ================= */
 const owner={};
 DAYS.forEach(d=>d.stops.forEach(s=>{(owner[s.r]=owner[s.r]||[]).push(d.id)}));
 const markers=[];
+// which day's context to use for a shared stop: selected > hovered > first
+const dayFor=days=>(state.sel&&days.includes(state.sel))?state.sel:
+                   (state.hover&&days.includes(state.hover))?state.hover:days[0];
+const tip=new maplibregl.Popup({closeButton:false,closeOnClick:false,offset:16,
+  className:'stoptip',maxWidth:'240px'});
+function showTip(ref,days){
+  const day=DAYS.find(d=>d.id===dayFor(days));
+  const s=day.stops.find(x=>x.r===ref); if(!s)return;
+  const c=ref==='uliv'?'var(--ink)':day.hex;
+  tip.setLngLat(STOPS[ref].c).setHTML(
+    `<div class="tt" style="--tc:${c}"><span class="tt-kick"><i></i>${s.t} · Day ${day.n}</span>`+
+    `<b>${STOPS[ref].label}</b><span class="tt-d">${s.d}</span></div>`).addTo(map);
+}
 Object.keys(owner).forEach(ref=>{
   const s=STOPS[ref],days=owner[ref],home=ref==='uliv';
   const day=DAYS.find(d=>d.id===days[0]);
   const el=document.createElement('div');
   el.className='pin'+(home?' home':'');
   el.style.setProperty('--c',home?'#fff':day.hex);
-  el.title=s.label;
-  el.addEventListener('pointerenter',()=>{
-    const use=(state.sel&&days.includes(state.sel))?state.sel:
-              (state.hover&&days.includes(state.hover))?state.hover:days[0];
-    setHover(use,ref)});
-  el.addEventListener('pointerleave',()=>setHover(null,null));
+  el.setAttribute('aria-label',s.label);
+  el.addEventListener('pointerenter',()=>{setHover(dayFor(days),ref);showTip(ref,days)});
+  el.addEventListener('pointerleave',()=>{setHover(null,null);tip.remove()});
   el.addEventListener('click',e=>{e.stopPropagation();select(days[0])});
   new maplibregl.Marker({element:el}).setLngLat(s.c).addTo(map);
   markers.push({el,ref,days});
