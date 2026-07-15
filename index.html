@@ -86,15 +86,29 @@
   .pin.dim{opacity:.18}
   .pin.hot b{animation:pulse 1.5s ease-in-out infinite}
   @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.6)}}
-  /* ---- 2D/3D mode toggle ---- */
-  #modes{position:fixed;left:22px;top:162px;z-index:6;display:flex;
-    border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  /* ---- 2D/3D + theme toggles ---- */
+  #ctrls{position:fixed;left:22px;top:162px;z-index:6;display:flex;gap:8px}
+  #modes,#themes{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;
     background:var(--panel);backdrop-filter:blur(14px)}
-  #modes button{font:600 11px/1 var(--mono);letter-spacing:.08em;color:var(--mut);
+  #ctrls button{font:600 11px/1 var(--mono);letter-spacing:.08em;color:var(--mut);
     background:transparent;border:0;padding:9px 15px;cursor:pointer;transition:.15s}
-  #modes button:hover{color:var(--ink)}
-  #modes button.on{color:#0a0f1e;background:#8fc5ff}
-  #modes button:focus-visible{outline:1.5px solid #55d6f0;outline-offset:-2px}
+  #ctrls button:hover{color:var(--ink)}
+  #ctrls button.on{color:#0a0f1e;background:#8fc5ff}
+  #ctrls button:focus-visible{outline:1.5px solid #55d6f0;outline-offset:-2px}
+  /* ---- light theme ---- */
+  body.light{
+    --bg:#e8ecf2; --ink:#182238; --mut:#4d5b74; --faint:#8b97ac;
+    --panel:rgba(250,252,255,.9); --line:rgba(30,60,110,.15);
+  }
+  body.light #plate h1 b{-webkit-text-stroke-color:rgba(45,95,175,.75)}
+  body.light #card{box-shadow:0 24px 60px rgba(30,50,90,.22), inset 0 1px 0 rgba(255,255,255,.7)}
+  body.light #card .tag{color:#1e7a4d;border-color:rgba(30,122,77,.45)}
+  body.light #card .tag.todo{color:#9a6b1a;border-color:rgba(154,107,26,.45)}
+  body.light .pin.home i{background:#16233f;box-shadow:0 0 12px rgba(22,35,63,.45),0 2px 6px rgba(0,0,0,.25)}
+  body.light .pin.home b{border-color:#16233f}
+  body.light .maplibregl-ctrl-attrib{background:rgba(255,255,255,.65)!important;color:#4d5b74!important}
+  body.light .maplibregl-ctrl-attrib a{color:#2d4a74!important}
+  body.light .maplibregl-ctrl-group button .maplibregl-ctrl-icon{filter:none}
   /* ---- misc chrome ---- */
   .maplibregl-ctrl-bottom-left{bottom:14px}
   .maplibregl-ctrl-attrib{background:rgba(10,15,30,.6)!important;color:#93a0b8!important;font-size:10px}
@@ -106,7 +120,8 @@
     #plate{left:12px;top:12px;padding:10px 13px}
     #plate h1{font-size:22px}
     #plate .sub{display:none}
-    #modes{left:12px;top:84px}
+    #ctrls{left:12px;top:84px}
+    #ctrls button{padding:8px 11px}
     #card{left:12px;right:12px;width:auto;top:auto;bottom:72px}
     #card .ph{height:92px}
     #card ul{max-height:118px}
@@ -123,8 +138,13 @@
   <h1>CDMX <b>EN CRISTAL</b></h1>
   <div class="sub">Hover a day to light its route — dotted walks, solid rides.</div>
 </header>
-<div id="modes" role="group" aria-label="Map view mode">
-  <button id="m2d" type="button">2D</button><button id="m3d" type="button" class="on">3D</button>
+<div id="ctrls">
+  <div id="modes" role="group" aria-label="Map view mode">
+    <button id="m2d" type="button">2D</button><button id="m3d" type="button" class="on">3D</button>
+  </div>
+  <div id="themes" role="group" aria-label="Color theme">
+    <button id="tDark" type="button">Dark</button><button id="tLight" type="button">Light</button>
+  </div>
 </div>
 <nav id="rail" aria-label="Days"></nav>
 <aside id="card" aria-live="polite"></aside>
@@ -231,8 +251,15 @@ const PUEBLA=new Set(['capu','casareyna','sacristia','palafox','rosario','zocalo
 
 /* ================= map ================= */
 const rmq=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const STYLES={dark:'https://tiles.openfreemap.org/styles/dark',
+              light:'https://tiles.openfreemap.org/styles/positron'};
+let theme;
+try{theme=localStorage.getItem('cdmx-theme')}catch(e){}
+if(theme!=='dark'&&theme!=='light')
+  theme=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
+document.body.classList.toggle('light',theme==='light');
 const map=new maplibregl.Map({
-  container:'map', style:'https://tiles.openfreemap.org/styles/dark',
+  container:'map', style:STYLES[theme],
   center:[-99.163,19.41], zoom:12.4, pitch:58, bearing:-15,
   maxPitch:72, antialias:true, attributionControl:{compact:true}
 });
@@ -256,6 +283,23 @@ function setMode(m){
 document.getElementById('m2d').addEventListener('click',()=>setMode('2d'));
 document.getElementById('m3d').addEventListener('click',()=>setMode('3d'));
 
+/* ---- dark / light theme ---- */
+function paintThemeChips(){
+  document.getElementById('tDark').classList.toggle('on',theme==='dark');
+  document.getElementById('tLight').classList.toggle('on',theme==='light');
+}
+function setTheme(t){
+  if(theme===t)return;
+  theme=t;
+  try{localStorage.setItem('cdmx-theme',t)}catch(e){}
+  document.body.classList.toggle('light',t==='light');
+  paintThemeChips();
+  map.setStyle(STYLES[t]);
+}
+document.getElementById('tDark').addEventListener('click',()=>setTheme('dark'));
+document.getElementById('tLight').addEventListener('click',()=>setTheme('light'));
+paintThemeChips();
+
 function bboxOf(coordsList){
   const b=new maplibregl.LngLatBounds();
   coordsList.forEach(c=>b.extend(c)); return b;
@@ -267,7 +311,8 @@ const PAD={top:90,left:80,right:360,bottom:110};
 const PADM={top:70,left:30,right:30,bottom:250};
 const pad=()=>innerWidth<840?PADM:PAD;
 
-map.on('load',()=>{
+function addCustomLayers(){
+  if(map.getLayer('glass-buildings'))return;
   const style=map.getStyle();
   const srcName=Object.keys(style.sources).find(s=>style.sources[s].type==='vector');
   const firstSymbol=style.layers.find(l=>l.type==='symbol')?.id;
@@ -287,8 +332,8 @@ map.on('load',()=>{
   map.addLayer({
     id:'glass-buildings',type:'fill-extrusion',source:srcName,'source-layer':'building',minzoom:13,
     paint:{
-      'fill-extrusion-color':'#2b4468',
-      'fill-extrusion-opacity':0.44,
+      'fill-extrusion-color':theme==='light'?'#b7c6d8':'#2b4468',
+      'fill-extrusion-opacity':theme==='light'?0.55:0.44,
       'fill-extrusion-height':['coalesce',['get','render_height'],11],
       'fill-extrusion-base':['coalesce',['get','render_min_height'],0],
       'fill-extrusion-vertical-gradient':true
@@ -307,14 +352,26 @@ map.on('load',()=>{
       filter:['==',['get','mode'],'walk'],
       layout:{'line-cap':'round','line-join':'round'},
       paint:{'line-color':day.hex,'line-width':lw(3.5,9),'line-opacity':.95,'line-dasharray':[0,2]}},firstSymbol);
-    ['-glow','-ride','-walk'].forEach(sfx=>{
-      map.on('mouseenter',day.id+sfx,()=>{map.getCanvas().style.cursor='pointer';setHover(day.id,null)});
-      map.on('mouseleave',day.id+sfx,()=>{map.getCanvas().style.cursor='';setHover(null,null)});
-      map.on('click',day.id+sfx,e=>{e.preventDefault?.();select(day.id)});
-    });
   });
-  if(map.getLayer('glass-buildings'))
-    map.setLayoutProperty('glass-buildings','visibility',mode==='3d'?'visible':'none');
+  map.setLayoutProperty('glass-buildings','visibility',mode==='3d'?'visible':'none');
+}
+// re-add custom layers whenever a style swap wipes them; styledata re-fires
+// during our own mutations, so a re-entrancy flag prevents recursion
+let addingLayers=false;
+function ensureLayers(){
+  if(addingLayers||!map.isStyleLoaded()||map.getLayer('glass-buildings'))return;
+  addingLayers=true;
+  try{addCustomLayers();render()}catch(e){}finally{addingLayers=false}
+}
+map.on('styledata',ensureLayers);
+map.on('load',()=>{
+  ensureLayers();
+  // layer-scoped events survive setStyle, so wire them once
+  DAYS.forEach(day=>['-glow','-ride','-walk'].forEach(sfx=>{
+    map.on('mouseenter',day.id+sfx,()=>{map.getCanvas().style.cursor='pointer';setHover(day.id,null)});
+    map.on('mouseleave',day.id+sfx,()=>{map.getCanvas().style.cursor='';setHover(null,null)});
+    map.on('click',day.id+sfx,e=>{e.preventDefault?.();select(day.id)});
+  }));
   map.fitBounds(cdmxBounds,{padding:pad(),pitch:basePitch(),bearing:baseBearing(),duration:rmq?0:2200});
 });
 // some embedded webviews report a stale container size at init and never
@@ -384,7 +441,7 @@ function showIntro(){
    <div class="bd">
      <div class="kick"><i></i>Trip atlas</div>
      <h3>Nine days, five barrios, one bus east</h3>
-     <p class="blurb">Home base is ULIV Condesa (the white beacon). Every line follows the real streets —
+     <p class="blurb">Home base is ULIV Condesa (the oversized home pin). Every line follows the real streets —
      dotted means walking, solid means a ride or the ADO bus east to Puebla &amp; Cholula.</p>
      <ul>
        <li><span class="tm">9</span><span class="nm"><b>days</b> · Aug 8–16</span></li>
