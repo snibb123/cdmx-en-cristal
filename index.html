@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>CDMX · Ciudad de Cristal — Aug 8–16</title>
+<title>CDMX — Aug 8–16</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗺️</text></svg>">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@125,500;125,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -34,8 +34,25 @@
   #rail{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:6;
     display:flex;gap:5px;padding:7px 8px;border-radius:14px;background:var(--panel);
     border:1px solid var(--line);backdrop-filter:blur(14px);
-    max-width:calc(100vw - 24px);overflow-x:auto;scrollbar-width:none}
+    max-width:calc(100vw - 24px);overflow-x:auto;scrollbar-width:none;
+    transition:transform .35s ease,opacity .3s ease}
   #rail::-webkit-scrollbar{display:none}
+  #railHide{position:sticky;right:0;flex:none;order:99;align-self:stretch;
+    padding:0 8px 0 9px;margin-left:1px;border:0;border-left:1px solid var(--line);
+    background:var(--panel);color:var(--faint);cursor:pointer;
+    font:600 15px/1 var(--body);transition:color .15s}
+  #railHide:hover{color:var(--ink)}
+  #railHide:focus-visible{outline:1.5px solid #55d6f0;outline-offset:-2px}
+  #railShow{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:6;
+    display:none;align-items:center;gap:7px;padding:9px 15px;border-radius:12px;
+    background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(14px);
+    color:var(--mut);cursor:pointer;font:600 10.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+  #railShow:hover{color:var(--ink)}
+  #railShow:focus-visible{outline:1.5px solid #55d6f0;outline-offset:2px}
+  #railShow .dot{width:7px;height:7px;border-radius:50%;
+    background:conic-gradient(#f5b84c,#55d6f0,#9edc5a,#5b8cff,#e77ef2,#f5b84c)}
+  body.rail-hidden #rail{transform:translate(-50%,180%);opacity:0;pointer-events:none}
+  body.rail-hidden #railShow{display:flex}
   .chip{flex:none;display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:9px;
     border:1px solid transparent;background:transparent;color:var(--mut);cursor:pointer;
     font:500 11px/1.2 var(--body);transition:.15s;white-space:nowrap}
@@ -126,7 +143,7 @@
     #card .ph{height:92px}
     #card ul{max-height:118px}
     #card .blurb{display:none}
-    #rail{bottom:10px}
+    #rail,#railShow{bottom:10px}
   }
   @media (prefers-reduced-motion:reduce){.pin.hot b{animation:none}}
 </style>
@@ -135,7 +152,7 @@
 <div id="map"></div>
 <header id="plate">
   <div class="eyebrow">AUG 8–16 · 2026 · MEXICO CITY</div>
-  <h1>CDMX <b>EN CRISTAL</b></h1>
+  <h1>CDMX</h1>
   <div class="sub">Hover a day to light its route — dotted walks, solid rides.</div>
 </header>
 <div id="ctrls">
@@ -147,6 +164,7 @@
   </div>
 </div>
 <nav id="rail" aria-label="Days"></nav>
+<button id="railShow" type="button" aria-label="Show day selector"><span class="dot"></span>Days</button>
 <aside id="card" aria-live="polite"></aside>
 
 <script src="data.js"></script>
@@ -470,6 +488,15 @@ DAYS.forEach(day=>{
   c.addEventListener('click',()=>select(day.id));
   rail.appendChild(c);chips[day.id]=c;
 });
+// collapse control — chevron on the rail, "Days" pill to restore
+const railHide=document.createElement('button');
+railHide.id='railHide';railHide.type='button';
+railHide.setAttribute('aria-label','Hide day selector');railHide.textContent='⌄';
+railHide.addEventListener('click',()=>{document.body.classList.add('rail-hidden');
+  setHover(null,null);document.getElementById('railShow').focus()});
+rail.appendChild(railHide);
+document.getElementById('railShow').addEventListener('click',()=>{
+  document.body.classList.remove('rail-hidden');allChip.focus()});
 const state={sel:null,hover:null,ref:null};
 function flyHome(){map.fitBounds(cdmxBounds,{padding:pad(),pitch:basePitch(),bearing:baseBearing(),duration:rmq?0:1600})}
 function flyDay(day){
