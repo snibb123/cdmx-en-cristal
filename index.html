@@ -102,6 +102,7 @@
   .pin.home{--ps:52px}
   .pin.home .face{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.95),0 4px 12px rgba(0,0,0,.55),0 0 16px #cfe4ff}
   .pin.dim{opacity:.28}
+  .pin.gone{display:none}
   .pin.hot{z-index:9}
   .pin.hot .face{--ps:58px;box-shadow:0 0 0 3px #fff,0 6px 18px rgba(0,0,0,.6),0 0 22px var(--c)}
   .pin.home.hot .face{--ps:64px}
@@ -741,11 +742,17 @@ function select(id){
   state.sel=id;render();flyDay(DAYS.find(d=>d.id===id));
 }
 function setHover(id,ref){state.hover=id;state.ref=ref;render()}
+const RT_SFX=['-glow','-case-ride','-case-walk','-ride','-walk'];
 function render(){
   const act=state.hover||state.sel;
+  // clicking a day isolates it: every other day's route and pins are hidden
+  // outright. Hovering (without a selection) only dims, as a preview.
+  const isolate=!!state.sel;
   const gBase=theme==='light'?.16:.34;               // glow opacity matches addCustomLayers
   if(map.getLayer('d1-glow')) DAYS.forEach(day=>{
-    const on=act===day.id, dimmed=act&&!on;
+    const on=act===day.id, dimmed=act&&!on, hide=isolate&&!on;
+    RT_SFX.forEach(sfx=>{const id=day.id+sfx;
+      if(map.getLayer(id))map.setLayoutProperty(id,'visibility',hide?'none':'visible')});
     map.setPaintProperty(day.id+'-glow','line-opacity',on?gBase+.16:dimmed?.05:gBase);
     map.setPaintProperty(day.id+'-ride','line-opacity',on?1:dimmed?.08:1);
     map.setPaintProperty(day.id+'-walk','line-opacity',on?1:dimmed?.08:1);
@@ -759,8 +766,10 @@ function render(){
   DAYS.forEach(day=>chips[day.id].classList.toggle('on',act===day.id||state.sel===day.id));
   allChip.classList.toggle('on',!state.sel&&!act);
   markers.forEach(m=>{
-    const mine=act&&m.days.includes(act);
-    m.el.classList.toggle('dim',!!act&&!mine&&m.ref!=='uliv');
+    const mine=act&&m.days.includes(act), home=m.ref==='uliv';
+    const gone=isolate&&!mine&&!home;                // home stays as the anchor
+    m.el.classList.toggle('gone',gone);
+    m.el.classList.toggle('dim',!gone&&!!act&&!mine&&!home);
     m.el.classList.toggle('hot',!!mine&&state.ref===m.ref);
   });
   if(act)showDay(DAYS.find(d=>d.id===act),state.ref);else showIntro();
