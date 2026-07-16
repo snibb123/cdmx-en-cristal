@@ -86,7 +86,10 @@
   #card li.sel{color:#fff}
   #card li.sel .tm{color:var(--c,#8fc5ff)}
   #card li .nm b{font-weight:600}
-  #card li .why{display:block;font-size:10.5px;color:var(--mut)}
+  #card li .why{display:block;font-size:10.5px;color:var(--mut);margin-top:2px}
+  #card li .why.sum{color:var(--ink)}
+  #card li .why-lbl{display:inline-block;margin-right:5px;color:var(--c,#8fc5ff);
+    font:600 7.5px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;vertical-align:1px}
   #card .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
   #card .tag{font:500 9px/1 var(--mono);letter-spacing:.04em;padding:4px 7px;border-radius:99px;
     border:1px solid rgba(120,225,170,.35);color:#8ce8b8}
@@ -116,16 +119,21 @@
     background:var(--panel);border:1px solid var(--line);border-radius:12px;
     backdrop-filter:blur(14px);padding:9px 12px 10px;
     box-shadow:0 14px 34px rgba(0,0,0,.4);font-family:var(--body)}
-  .stoptip .tt{display:block;max-width:224px}
-  .stoptip .tt-img{display:block;width:100%;height:96px;margin-bottom:8px;border-radius:8px;
+  .stoptip .tt{display:block;width:230px}
+  .stoptip .tt-img{display:block;width:100%;height:104px;margin-bottom:9px;border-radius:8px;
     background:var(--tc) center/cover no-repeat;box-shadow:0 2px 8px rgba(0,0,0,.35)}
-  .stoptip .tt-kick{display:flex;align-items:center;gap:6px;margin-bottom:5px;
-    font:600 8.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+  .stoptip .tt b{display:block;margin-bottom:4px;color:var(--ink);
+    font:600 14.5px/1.2 var(--disp);letter-spacing:.01em}
+  .stoptip .tt-kick{display:flex;align-items:center;gap:6px;margin-bottom:7px;
+    font:600 8.5px/1.3 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
   .stoptip .tt-kick i{width:8px;height:8px;border-radius:50%;flex:none;
     background:var(--tc);box-shadow:0 0 7px var(--tc)}
-  .stoptip .tt b{display:block;margin-bottom:3px;color:var(--ink);
-    font:600 13px/1.2 var(--disp);letter-spacing:.01em}
-  .stoptip .tt-d{display:block;font:400 11px/1.45 var(--body);color:var(--mut)}
+  .stoptip .tt-sum{display:block;margin-bottom:8px;font:400 11.5px/1.5 var(--body);color:var(--ink)}
+  .stoptip .tt-d{display:block;padding-top:7px;border-top:1px solid var(--line);
+    font:400 11px/1.45 var(--body);color:var(--mut)}
+  .stoptip .tt-lbl{display:inline-block;margin-right:6px;color:var(--tc);
+    font:600 8px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;
+    vertical-align:1px}
   /* ---- 2D/3D + theme toggles ---- */
   #ctrls{position:fixed;left:22px;top:162px;z-index:6;display:flex;gap:8px}
   #modes,#themes{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;
@@ -196,99 +204,143 @@
 /* ================= itinerary content ================= */
 const DAYS=[
 {id:'d1',n:1,date:'Sat · Aug 8',chip:'Arrive',hex:'#f5b84c',
- title:'Wheels down, lights up',
- blurb:'Land at 7:40 pm, prearranged car to Condesa, keep it light. Altitude night one — hydrate, easy on the mezcal.',
+ title:'Arrival',
+ blurb:'Evening arrival at MEX Terminal 2 and transfer to Condesa. A deliberately light first night to begin adjusting to the 2,240 m altitude.',
  stops:[
-  {t:'4:05p',r:'mex',d:'Aeromexico JFK → MEX T2. Budget 60–90 min for immigration.'},
-  {t:'~8:45p',r:'uliv',d:'Prearranged driver or authorized airport taxi — no curbside rideshare at AICM.'},
-  {t:'10:00p',r:'lardo',d:'Late Mediterranean dinner on Agustín Melgar; backup is any taquería on Tamaulipas.'}],
+  {t:'4:05p',r:'mex',d:'Aeroméxico from JFK, arriving ~7:40 pm. Allow 60–90 min for immigration.'},
+  {t:'~8:45p',r:'uliv',d:'Check in. Use a prearranged driver or authorized airport taxi; rideshare pickup is not allowed inside AICM.'},
+  {t:'10:00p',r:'lardo',d:'Late dinner near the apartment. Backup: any taquería on Tamaulipas.'}],
  tags:[['ok','ULIV Condesa booked'],['ok','Flight AM · JFK→MEX']]},
 {id:'d2',n:2,date:'Sun · Aug 9',chip:'Centro',hex:'#55d6f0',
- title:'Centro Histórico loop',
- blurb:'Quiet Sunday Centro — pyramid stones, Rivera murals, one drink under a bullet hole — then retreat to Condesa to acclimate.',
+ title:'Centro Histórico',
+ blurb:'A morning circuit of the historic center — the Zócalo, Templo Mayor, and Diego Rivera’s murals — then back to Condesa for the afternoon.',
  stops:[
-  {t:'8:00a',r:'rosetta',d:'Guava roll + coffee. Out by 8:45 to stay on rails.'},
-  {t:'9:15a',r:'zocalo',d:'The great square; note the cathedral’s tilted floor.'},
-  {t:'9:45a',r:'templo',d:'Mexica great temple + Coyolxauhqui monolith. ~90 min.'},
-  {t:'11:15a',r:'sep',d:'Rivera’s 235-panel mural cycle, free, two courtyards.'},
-  {t:'11:50a',r:'munal',d:'45–60 min highlights pass: Velasco, Orozco, Siqueiros.'},
-  {t:'1:15p',r:'opera',d:'One mezcal under Pancho Villa’s bullet hole (since 1876).'},
-  {t:'1:45p',r:'azul',d:'Mole lunch in a 17th-century courtyard. 10-min tolerance!'},
-  {t:'5:30p',r:'pmex',d:'Art-deco park loop after the siesta.'},
-  {t:'7:00p',r:'felina',d:'Sunset Negroni in Condesa.'},
-  {t:'8:00p',r:'meroma',d:'Open-kitchen Mediterranean-Mexican, Michelin rec.'},
-  {t:'10:30p',r:'tlecan',d:'Nightcap copita — #3 bar in North America.'}],
+  {t:'8:00a',r:'rosetta',d:'Coffee and pastry to start; leave by ~8:45 to keep the morning on schedule.'},
+  {t:'9:15a',r:'zocalo',d:'Enter the cathedral if time allows; note the floor’s tilt from the sinking subsoil.'},
+  {t:'9:45a',r:'templo',d:'Allow ~90 minutes for the site and museum.'},
+  {t:'11:15a',r:'sep',d:'Free entry; the mural cycle spans two open courtyards.'},
+  {t:'11:50a',r:'munal',d:'A 45–60 minute highlights visit; free on Sundays.'},
+  {t:'1:15p',r:'opera',d:'One drink; a short stop before lunch.'},
+  {t:'1:45p',r:'azul',d:'Reserved lunch, 1:45 pm. 10-minute arrival tolerance.'},
+  {t:'5:30p',r:'pmex',d:'Easy loop through the park after a siesta.'},
+  {t:'7:00p',r:'felina',d:'One drink at sunset.'},
+  {t:'8:00p',r:'meroma',d:'Reserved dinner, 8:00 pm.'},
+  {t:'10:30p',r:'tlecan',d:'Optional nightcap; one mezcal.'}],
  tags:[['ok','Azul Histórico 1:45p'],['ok','Meroma 8:00p']]},
 {id:'d3',n:3,date:'Mon · Aug 10',chip:'Roma laze',hex:'#9edc5a',
- title:'The exhale day',
- blurb:'Every museum is closed on Monday, so lean in: sleep late, park loops, masa, and 1 a.m. tacos. Nowhere to be.',
+ title:'Roma & Condesa',
+ blurb:'An unstructured day in Roma and Condesa. Most museums close on Mondays, so the plan is parks, cafés, and neighborhood walking.',
  stops:[
-  {t:'8:30a',r:'pmex',d:'Slow perimeter + Parque España. Find a bench.'},
-  {t:'9:30a',r:'hule',d:'Coffee and records; Lardo if you want polish.'},
-  {t:'2:30p',r:'maizajo',d:'Nixtamal tortillería — the masa is the point.'},
-  {t:'8:00p',r:'parnita',d:'Botanas dinner, low key.'},
-  {t:'10:30p',r:'juanes',d:'Open till 3 am. Cash only.'}],
+  {t:'8:30a',r:'pmex',d:'Slow morning loop through the park and Parque España.'},
+  {t:'9:30a',r:'hule',d:'Coffee near the apartment; Lardo as an alternative.'},
+  {t:'2:30p',r:'maizajo',d:'Lunch; heirloom-corn tortillas and tacos.'},
+  {t:'8:00p',r:'parnita',d:'Casual dinner of Mexican botanas.'},
+  {t:'10:30p',r:'juanes',d:'Late-night tacos; open until 3 am, cash only.'}],
  tags:[['todo','Book Máximo for Tue 7p']]},
 {id:'d4',n:4,date:'Tue · Aug 11',chip:'Coyoacán',hex:'#5b8cff',
- title:'Frida’s cobalt south',
- blurb:'Straight to Casa Azul for the 11:00 slot — QR codes screenshotted, at the gate by 10:45 — then Oaxacan mole and the market.',
+ title:'Coyoacán',
+ blurb:'The southern colonial neighborhood of Coyoacán, centered on Frida Kahlo’s Casa Azul (timed 11:00 entry) and lunch on the plaza.',
  stops:[
-  {t:'11:00a',r:'frida',d:'Booked, 2 tickets. 15-min arrival window; bring ID.'},
-  {t:'1:00p',r:'danz',d:'Mole negro + chapulines on the plaza. If unconfirmed, walk in at 12:30.'},
-  {t:'2:45p',r:'mcoyo',d:'Tostadas counter — a local institution.'},
-  {t:'3:30p',r:'trotsky',d:'Optional; the 1940 house-museum. Skip if rain rolls in.'},
-  {t:'7:00p',r:'maximo',d:'The nice dinner: one Michelin star, market-driven. Early seating — Puebla bus at 9 am.'}],
+  {t:'11:00a',r:'frida',d:'Booked, 2 tickets, 11:00 am. 15-minute entry window; bring ID.'},
+  {t:'1:00p',r:'danz',d:'Lunch on the plaza. If unconfirmed, arrive at the 12:30 opening.'},
+  {t:'2:45p',r:'mcoyo',d:'Short visit; the tostada counter is the highlight.'},
+  {t:'3:30p',r:'trotsky',d:'Optional; about 60 minutes.'},
+  {t:'7:00p',r:'maximo',d:'Reserved dinner, 7:00 pm — early, before the 9 am Puebla bus.'}],
  tags:[['ok','Casa Azul 11:00a'],['todo','Danzantes: confirm WhatsApp'],['todo','Máximo: book 7:00p']]},
 {id:'d5',n:5,date:'Wed · Aug 12',chip:'Puebla',hex:'#e77ef2',
- title:'Talavera & nogada',
- blurb:'9 am ADO east to Puebla. The Palafoxiana — first public library in the Americas — anchors the afternoon; chiles en nogada, in their birthplace, anchor the night.',
+ title:'Puebla',
+ blurb:'Bus east to Puebla for its UNESCO-listed center: the Palafoxiana library, the Rosary Chapel, and chiles en nogada, a dish native to the city.',
  stops:[
-  {t:'9:00a',r:'tapo',d:'ADO first-class, ~2h20 to CAPU.'},
-  {t:'11:45a',r:'casareyna',d:'Drop bags at the boutique hotel; room from 3 pm.'},
-  {t:'12:30p',r:'sacristia',d:'House mole poblano in a colonial courtyard.'},
-  {t:'2:00p',r:'palafox',d:'45,000 volumes behind gilded cedar. Closes 5 pm.'},
-  {t:'3:00p',r:'rosario',d:'Gold-drenched Baroque chapel. Free.'},
-  {t:'3:45p',r:'zocalop',d:'Zócalo + cathedral, then Sapos antiques.'},
-  {t:'8:00p',r:'mural',d:'Chiles en nogada — August is peak season.'}],
+  {t:'9:00a',r:'tapo',d:'9:00 am first-class ADO coach; about 2h20 to Puebla.'},
+  {t:'11:45a',r:'casareyna',d:'Drop bags on arrival; room ready from 3 pm.'},
+  {t:'12:30p',r:'sacristia',d:'Lunch; classic mole poblano.'},
+  {t:'2:00p',r:'palafox',d:'Closes 5 pm; this is the fixed afternoon anchor.'},
+  {t:'3:00p',r:'rosario',d:'Free entry; about 20 minutes.'},
+  {t:'3:45p',r:'zocalop',d:'Walk the square and cathedral, then the Sapos antiques street.'},
+  {t:'8:00p',r:'mural',d:'Reserved dinner, 8:00 pm; order the chiles en nogada.'}],
  tags:[['ok','Casareyna 1 night'],['ok','El Mural 8:00p'],['todo','Buy ADO tickets']]},
 {id:'d6',n:6,date:'Thu · Aug 13',chip:'Cholula',hex:'#ff9950',
- title:'Pyramid, then home',
- blurb:'The world’s biggest pyramid by volume, a church on its crown, Popocatépetl behind — then the noon bus lands you in ULIV’s 3–4 pm window.',
+ title:'Cholula & return',
+ blurb:'The Great Pyramid of Cholula in the morning, then the midday bus back to Mexico City and a low-key evening in Roma.',
  stops:[
-  {t:'9:00a',r:'cholula',d:'Open area, site museum, church climb. Leave by 10:15 — the bus rules the day.'},
-  {t:'12:00p',r:'capu',d:'ADO back to TAPO, ~2:20 pm arrival.'},
-  {t:'3:15p',r:'uliv',d:'Check back in, unpack, feet up.'},
-  {t:'6:30p',r:'baltra',d:'Aperitivo — go early, it fills.'},
-  {t:'8:00p',r:'blanco',d:'Or Expendio de Maíz / Atarantados. Keep it easy.'}],
+  {t:'9:00a',r:'cholula',d:'Open area, site museum, and church climb. Leave by ~10:15 for the bus.'},
+  {t:'12:00p',r:'capu',d:'12:00 pm ADO coach back to Mexico City; arrives ~2:20 pm.'},
+  {t:'3:15p',r:'uliv',d:'Second check-in, within the 3–4 pm window.'},
+  {t:'6:30p',r:'baltra',d:'Aperitivo; go early.'},
+  {t:'8:00p',r:'blanco',d:'Casual dinner. Alternatives: Expendio de Maíz or Atarantados.'}],
  tags:[['ok','ULIV stay 2'],['todo','ADO 12:00p — the linchpin']]},
 {id:'d7',n:7,date:'Fri · Aug 14',chip:'Chapultepec',hex:'#43dfa6',
- title:'Castle, Sun Stone, Polanco',
- blurb:'Castillo at the 9 am open, then give Antropología the middle of the day — Mexica, Maya, Oaxaca halls only. Don’t conquer the building.',
+ title:'Chapultepec & Polanco',
+ blurb:'Chapultepec park’s two main sights — the castle and the National Anthropology Museum — followed by the Polanco district.',
  stops:[
-  {t:'9:00a',r:'castillo',d:'The only royal castle in the Americas; Reforma views.'},
-  {t:'11:00a',r:'antro',d:'Sun Stone + Pakal’s tomb. 2.5 hrs, ground floor first.'},
-  {t:'1:45p',r:'turix',d:'A 12-ft counter that does only cochinita pibil. Cash.'},
-  {t:'3:00p',r:'soumaya',d:'Optional: the silver swirl, free, while you’re up here.'},
-  {t:'8:30p',r:'carinito',d:'Thai-Mexican tacos, Bib Gourmand, no reservations.'}],
+  {t:'9:00a',r:'castillo',d:'Arrive before the 9 am opening; about 90 minutes.'},
+  {t:'11:00a',r:'antro',d:'About 2.5 hours; prioritize the ground-floor archaeology halls.'},
+  {t:'1:45p',r:'turix',d:'Quick lunch counter; cash only.'},
+  {t:'3:00p',r:'soumaya',d:'Optional; free entry.'},
+  {t:'8:30p',r:'carinito',d:'Dinner; no reservations, expect a short wait.'}],
  tags:[['todo','Clásicos: appt or cut']]},
 {id:'d8',n:8,date:'Sat · Aug 15',chip:'Roma crawl',hex:'#ff7d92',
- title:'Tostadas & farewell pasta',
- blurb:'Last full day stays local: slow morning, pack before lunch, tuna tostadas at the icon, handmade pasta to close it out.',
+ title:'Roma Norte',
+ blurb:'A local final full day in Roma Norte: a seafood lunch at Contramar and a farewell dinner at Sartoria.',
  stops:[
-  {t:'9:30a',r:'rosetta',d:'Or Lalo! — slow coffee near home.'},
-  {t:'1:30p',r:'contramar',d:'Tuna tostadas + pescado a la talla. THE seafood lunch.'},
+  {t:'9:30a',r:'rosetta',d:'Slow coffee near the apartment; Lalo! as an alternative.'},
+  {t:'1:30p',r:'contramar',d:'Reserved lunch, ~1:30 pm.'},
   {t:'6:30p',r:'baltra',d:'Optional aperitivo.'},
-  {t:'7:30p',r:'sartoria',d:'Marco Carboni’s pasta; Michelin rec. 10-min tolerance.'}],
+  {t:'7:30p',r:'sartoria',d:'Reserved dinner, 7:30 pm; 10-minute tolerance.'}],
  tags:[['ok','Sartoria 7:30p'],['todo','Contramar: book ~Jul 16']]},
 {id:'d9',n:9,date:'Sun · Aug 16',chip:'Depart',hex:'#b48cff',
- title:'Dawn run to T2',
- blurb:'4:30 alarm, 5:00 car, wheels up 8:40. Passports, tickets, chargers in one pile the night before.',
+ title:'Departure',
+ blurb:'Early transfer to MEX Terminal 2 for the morning flight home.',
  stops:[
-  {t:'5:00a',r:'uliv',d:'Uber at dawn, ~35 min east.'},
-  {t:'8:40a',r:'mex',d:'AM402 → JFK 4:02 pm. Fin.'}],
+  {t:'5:00a',r:'uliv',d:'Depart by Uber at ~5:00 am; about 35 minutes to the airport.'},
+  {t:'8:40a',r:'mex',d:'Aeroméxico AM402 to JFK, departing 8:40 am.'}],
  tags:[['ok','Flight AM402']]},
 ];
 const PUEBLA=new Set(['capu','casareyna','sacristia','palafox','rosario','zocalop','mural','cholula']);
+// factual one-line description of what each place is (shown in tooltips)
+const SUMMARIES={
+ mex:"Mexico City’s main international airport; Terminal 2 handles Aeroméxico.",
+ uliv:"Apartment-style lodging in Condesa — the home base for both Mexico City stays.",
+ lardo:"Elena Reygadas’s all-day Mediterranean restaurant in Condesa.",
+ rosetta:"Roma Norte bakery known for its guava rolls and cardamom buns.",
+ zocalo:"One of the world’s largest public squares, framed by the 16th–18th-century Metropolitan Cathedral.",
+ templo:"Excavated ruins and museum of the Mexica (Aztec) Great Temple of Tenochtitlan.",
+ sep:"Diego Rivera’s 1920s mural cycle inside the Public Education ministry’s courtyards.",
+ munal:"National art museum covering Mexican work from the 16th century to 1954.",
+ opera:"Ornate cantina open since 1876, known for a bullet hole attributed to Pancho Villa.",
+ azul:"Ricardo Muñoz Zurita’s regional Mexican restaurant set in a colonial courtyard.",
+ pmex:"Art Deco park at the center of Condesa, laid out on a former racetrack oval.",
+ felina:"Small cocktail bar in Condesa.",
+ meroma:"Contemporary Mediterranean-Mexican restaurant with an open kitchen in Roma Norte.",
+ tlecan:"Mezcal bar in Roma Norte, ranked among North America’s best bars.",
+ hule:"Relaxed café and record spot in Condesa.",
+ maizajo:"Nixtamal tortillería and taquería working with heirloom-corn masa.",
+ parnita:"Roma Norte spot for Mexican botanas and casual lunch.",
+ juanes:"Late-night taquería in Roma Norte, open into the early morning.",
+ frida:"La Casa Azul, Frida Kahlo’s cobalt-blue childhood home, now a museum of her life and work.",
+ danz:"Upscale Oaxacan restaurant on a Coyoacán plaza, known for mole and mezcal.",
+ mcoyo:"Covered market in Coyoacán with crafts and a well-known tostada counter.",
+ trotsky:"The fortified house where Leon Trotsky lived and was assassinated in 1940, now a museum.",
+ maximo:"Eduardo García’s Michelin-starred, market-driven restaurant in Roma Norte.",
+ tapo:"Mexico City’s eastern bus terminal, for first-class ADO coaches to Puebla.",
+ castillo:"Hilltop castle in Chapultepec, once an imperial residence, now the National History Museum.",
+ antro:"Major archaeology and ethnography museum; home of the Aztec Sun Stone.",
+ turix:"Tiny Polanco counter serving only Yucatecan cochinita pibil; cash only.",
+ soumaya:"Free art museum in a landmark silver-clad building at Plaza Carso.",
+ carinito:"Thai-Mexican fusion taquería in Roma Norte (Michelin Bib Gourmand).",
+ contramar:"Landmark Roma Norte seafood restaurant, known for tuna tostadas and pescado a la talla.",
+ baltra:"Cocktail bar in Condesa.",
+ sartoria:"Marco Carboni’s handmade-pasta restaurant in Roma Norte.",
+ blanco:"Spanish-Mexican restaurant in Roma Norte.",
+ capu:"Puebla’s central bus terminal, for ADO coaches to and from Mexico City.",
+ casareyna:"Boutique hotel in Puebla’s historic center, known for its Talavera tilework.",
+ sacristia:"Restaurant in a colonial mansion serving classic mole poblano.",
+ palafox:"Founded 1646, the first public library in the Americas; 45,000 antique volumes behind carved cedar.",
+ rosario:"Gilded Baroque chapel inside Puebla’s Church of Santo Domingo.",
+ zocalop:"Puebla’s main square, fronted by a cathedral with Mexico’s tallest church towers.",
+ mural:"Regional Puebla restaurant, a prime spot for seasonal chiles en nogada.",
+ cholula:"The Great Pyramid of Cholula — the largest pyramid by volume on earth — topped by a colonial church.",
+};
 
 /* ================= map ================= */
 const rmq=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -385,22 +437,34 @@ function addCustomLayers(){
     if(map.getLayer('glass-buildings'))
       map.setLayoutProperty('glass-buildings','visibility',mode==='3d'?'visible':'none');
   }catch(e){console.warn('buildings:',e)}
-  // day routes: casing outline (theme-contrast) under a full-opacity core,
+  // neighborhood tints — soft per-barrio color, dropped in below the roads
+  try{
+    const firstRoad=style.layers.find(l=>l['source-layer']==='transportation'||/road|highway|bridge|tunnel/.test(l.id))?.id||firstSymbol;
+    if(!map.getSource('hoods')) map.addSource('hoods',{type:'geojson',data:HOODS});
+    if(!map.getLayer('hood-fill')) map.addLayer({id:'hood-fill',type:'fill',source:'hoods',
+      paint:{'fill-color':['get','color'],'fill-opacity':theme==='light'?0.26:0.13}},firstRoad);
+    if(!map.getLayer('hood-line')) map.addLayer({id:'hood-line',type:'line',source:'hoods',
+      paint:{'line-color':['get','color'],'line-width':1.3,'line-opacity':theme==='light'?0.6:0.32,
+        'line-dasharray':[3,2]}},firstRoad);
+  }catch(e){console.warn('hoods:',e)}
+  // day routes: casing outline (theme-contrast) under a full-opacity core, plus a
+  // colored glow that's stronger in dark mode so lines read solid on the dark map.
   // widths scale with zoom — every add is guarded so re-runs are idempotent
-  const casing=theme==='light'?'rgba(255,255,255,.95)':'rgba(8,12,24,.9)';
+  const casing=theme==='light'?'rgba(255,255,255,.95)':'rgba(4,8,18,.85)';
+  const glowOp=theme==='light'?0.16:0.34, glowBlur=theme==='light'?2:2.4;
   DAYS.forEach(day=>{try{
     if(!map.getSource(day.id)) map.addSource(day.id,{type:'geojson',data:ROUTES[day.id]});
     const add=(id,def)=>{if(!map.getLayer(id))map.addLayer(Object.assign(
       {id,type:'line',source:day.id,layout:{'line-cap':'round','line-join':'round'}},def),firstSymbol)};
-    add(day.id+'-glow',{paint:{'line-color':day.hex,'line-width':lw(10,26),'line-opacity':.18,'line-blur':2}});
+    add(day.id+'-glow',{paint:{'line-color':day.hex,'line-width':lw(12,30),'line-opacity':glowOp,'line-blur':glowBlur}});
     add(day.id+'-case-ride',{filter:['!=',['get','mode'],'walk'],
-      paint:{'line-color':casing,'line-width':lw(6,13),'line-opacity':.9}});
+      paint:{'line-color':casing,'line-width':lw(8,17),'line-opacity':.92}});
     add(day.id+'-case-walk',{filter:['==',['get','mode'],'walk'],
-      paint:{'line-color':casing,'line-width':lw(7,14),'line-opacity':.9,'line-dasharray':[0,2]}});
+      paint:{'line-color':casing,'line-width':lw(9,18),'line-opacity':.92,'line-dasharray':[0,1.9]}});
     add(day.id+'-ride',{filter:['!=',['get','mode'],'walk'],
-      paint:{'line-color':day.hex,'line-width':lw(3.5,9),'line-opacity':1}});
+      paint:{'line-color':day.hex,'line-width':lw(4.5,12),'line-opacity':1}});
     add(day.id+'-walk',{filter:['==',['get','mode'],'walk'],
-      paint:{'line-color':day.hex,'line-width':lw(4,10),'line-opacity':1,'line-dasharray':[0,2]}});
+      paint:{'line-color':day.hex,'line-width':lw(5,13),'line-opacity':1,'line-dasharray':[0,1.9]}});
   }catch(e){console.warn('route',day.id,e)}});
 }
 // Re-add custom layers whenever a style swap wipes them. Do NOT gate on
@@ -466,9 +530,13 @@ function showTip(ref,days){
   const c=ref==='uliv'?'var(--ink)':day.hex;
   const img=imgFor(ref,day.id);
   const imgHtml=img?`<span class="tt-img" style="background-image:url('${img}')"></span>`:'';
+  const sum=SUMMARIES[ref]?`<span class="tt-sum">${SUMMARIES[ref]}</span>`:'';
   tip.setLngLat(STOPS[ref].c).setHTML(
-    `<div class="tt" style="--tc:${c}">${imgHtml}<span class="tt-kick"><i></i>${s.t} · Day ${day.n}</span>`+
-    `<b>${STOPS[ref].label}</b><span class="tt-d">${s.d}</span></div>`).addTo(map);
+    `<div class="tt" style="--tc:${c}">${imgHtml}`+
+    `<b>${STOPS[ref].label}</b>`+
+    `<span class="tt-kick"><i></i>Day ${day.n} · ${day.date.replace(' · ',' ')} · ${s.t}</span>`+
+    `${sum}`+
+    `<span class="tt-d"><span class="tt-lbl">Plan</span>${s.d}</span></div>`).addTo(map);
 }
 Object.keys(owner).forEach(ref=>{
   const s=STOPS[ref],days=owner[ref],home=ref==='uliv';
@@ -514,7 +582,8 @@ function showDay(day,ref){
      <p class="blurb">${day.blurb}</p>
      <ul>${day.stops.map(s=>`
        <li class="${s.r===ref?'sel':''}"><span class="tm">${s.t}</span>
-        <span class="nm"><b>${STOPS[s.r].label}</b>${s.r===ref?`<span class="why">${s.d}</span>`:''}</span></li>`).join('')}
+        <span class="nm"><b>${STOPS[s.r].label}</b>${s.r===ref?
+          `${SUMMARIES[s.r]?`<span class="why sum">${SUMMARIES[s.r]}</span>`:''}<span class="why"><span class="why-lbl">Plan</span>${s.d}</span>`:''}</span></li>`).join('')}
      </ul>
      <div class="tags">${day.tags.map(tagHtml).join('')}</div>
    </div>`;
@@ -523,10 +592,11 @@ function showIntro(){
   card.style.setProperty('--c','#8fc5ff');
   card.innerHTML=`
    <div class="bd">
-     <div class="kick"><i></i>Trip atlas</div>
-     <h3>Nine days, five barrios, one bus east</h3>
-     <p class="blurb">Home base is ULIV Condesa (the oversized home pin). Every line follows the real streets —
-     dotted means walking, solid means a ride or the ADO bus east to Puebla &amp; Cholula.</p>
+     <div class="kick"><i></i>Overview</div>
+     <h3>Mexico City · Aug 8–16, 2026</h3>
+     <p class="blurb">Home base is ULIV Condesa (the white pin). Each colored line is one day, following the
+     real streets — dotted for walking, solid for a ride or the ADO bus east to Puebla and Cholula.
+     Hover a day below, or any stop, for details.</p>
      <ul>
        <li><span class="tm">9</span><span class="nm"><b>days</b> · Aug 8–16</span></li>
        <li><span class="tm">33</span><span class="nm"><b>stops</b> · CDMX + Puebla + Cholula</span></li>
@@ -575,17 +645,18 @@ function select(id){
 function setHover(id,ref){state.hover=id;state.ref=ref;render()}
 function render(){
   const act=state.hover||state.sel;
+  const gBase=theme==='light'?.16:.34;               // glow opacity matches addCustomLayers
   if(map.getLayer('d1-glow')) DAYS.forEach(day=>{
     const on=act===day.id, dimmed=act&&!on;
-    map.setPaintProperty(day.id+'-glow','line-opacity',on?.32:dimmed?.04:.18);
-    map.setPaintProperty(day.id+'-ride','line-opacity',on?1:dimmed?.07:1);
-    map.setPaintProperty(day.id+'-walk','line-opacity',on?1:dimmed?.07:1);
-    map.setPaintProperty(day.id+'-case-ride','line-opacity',on?1:dimmed?.05:.9);
-    map.setPaintProperty(day.id+'-case-walk','line-opacity',on?1:dimmed?.05:.9);
-    map.setPaintProperty(day.id+'-ride','line-width',on?lw(5,12):lw(3.5,9));
-    map.setPaintProperty(day.id+'-walk','line-width',on?lw(5.5,13):lw(4,10));
-    map.setPaintProperty(day.id+'-case-ride','line-width',on?lw(8,16):lw(6,13));
-    map.setPaintProperty(day.id+'-case-walk','line-width',on?lw(9,17):lw(7,14));
+    map.setPaintProperty(day.id+'-glow','line-opacity',on?gBase+.16:dimmed?.05:gBase);
+    map.setPaintProperty(day.id+'-ride','line-opacity',on?1:dimmed?.08:1);
+    map.setPaintProperty(day.id+'-walk','line-opacity',on?1:dimmed?.08:1);
+    map.setPaintProperty(day.id+'-case-ride','line-opacity',on?1:dimmed?.06:.92);
+    map.setPaintProperty(day.id+'-case-walk','line-opacity',on?1:dimmed?.06:.92);
+    map.setPaintProperty(day.id+'-ride','line-width',on?lw(6,14):lw(4.5,12));
+    map.setPaintProperty(day.id+'-walk','line-width',on?lw(6.5,15):lw(5,13));
+    map.setPaintProperty(day.id+'-case-ride','line-width',on?lw(10,19):lw(8,17));
+    map.setPaintProperty(day.id+'-case-walk','line-width',on?lw(11,20):lw(9,18));
   });
   DAYS.forEach(day=>chips[day.id].classList.toggle('on',act===day.id||state.sel===day.id));
   allChip.classList.toggle('on',!state.sel&&!act);
