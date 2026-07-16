@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>CDMX — Aug 8–16</title>
+<title>CDMX · Aug 8–16</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗺️</text></svg>">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@125,500;125,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -184,7 +184,7 @@
 <header id="plate">
   <div class="eyebrow">AUG 8–16 · 2026 · MEXICO CITY</div>
   <h1>CDMX</h1>
-  <div class="sub">Hover a day to light its route — dotted walks, solid rides.</div>
+  <div class="sub">Hover a day to light its route. Dotted walks, solid rides.</div>
 </header>
 <div id="ctrls">
   <div id="modes" role="group" aria-label="Map view mode">
@@ -213,7 +213,7 @@ const DAYS=[
  tags:[['ok','ULIV Condesa booked'],['ok','Flight AM · JFK→MEX']]},
 {id:'d2',n:2,date:'Sun · Aug 9',chip:'Centro',hex:'#55d6f0',
  title:'Centro Histórico',
- blurb:'A morning circuit of the historic center — the Zócalo, Templo Mayor, and Diego Rivera’s murals — then back to Condesa for the afternoon.',
+ blurb:'A morning circuit of the historic center: the Zócalo, Templo Mayor, and Diego Rivera’s murals, then back to Condesa for the afternoon.',
  stops:[
   {t:'8:00a',r:'rosetta',d:'Coffee and pastry to start; leave by ~8:45 to keep the morning on schedule.'},
   {t:'9:15a',r:'zocalo',d:'Enter the cathedral if time allows; note the floor’s tilt from the sinking subsoil.'},
@@ -245,7 +245,7 @@ const DAYS=[
   {t:'1:00p',r:'danz',d:'Lunch on the plaza. If unconfirmed, arrive at the 12:30 opening.'},
   {t:'2:45p',r:'mcoyo',d:'Short visit; the tostada counter is the highlight.'},
   {t:'3:30p',r:'trotsky',d:'Optional; about 60 minutes.'},
-  {t:'7:00p',r:'maximo',d:'Reserved dinner, 7:00 pm — early, before the 9 am Puebla bus.'}],
+  {t:'7:00p',r:'maximo',d:'Reserved dinner, 7:00 pm. Early, before the 9 am Puebla bus.'}],
  tags:[['ok','Casa Azul 11:00a'],['todo','Danzantes: confirm WhatsApp'],['todo','Máximo: book 7:00p']]},
 {id:'d5',n:5,date:'Wed · Aug 12',chip:'Puebla',hex:'#e77ef2',
  title:'Puebla',
@@ -268,10 +268,10 @@ const DAYS=[
   {t:'3:15p',r:'uliv',d:'Second check-in, within the 3–4 pm window.'},
   {t:'6:30p',r:'baltra',d:'Aperitivo; go early.'},
   {t:'8:00p',r:'blanco',d:'Casual dinner. Alternatives: Expendio de Maíz or Atarantados.'}],
- tags:[['ok','ULIV stay 2'],['todo','ADO 12:00p — the linchpin']]},
+ tags:[['ok','ULIV stay 2'],['todo','Book ADO 12:00p return']]},
 {id:'d7',n:7,date:'Fri · Aug 14',chip:'Chapultepec',hex:'#43dfa6',
  title:'Chapultepec & Polanco',
- blurb:'Chapultepec park’s two main sights — the castle and the National Anthropology Museum — followed by the Polanco district.',
+ blurb:'Chapultepec park’s two main sights, the castle and the National Anthropology Museum, followed by the Polanco district.',
  stops:[
   {t:'9:00a',r:'castillo',d:'Arrive before the 9 am opening; about 90 minutes.'},
   {t:'11:00a',r:'antro',d:'About 2.5 hours; prioritize the ground-floor archaeology halls.'},
@@ -300,7 +300,7 @@ const PUEBLA=new Set(['capu','casareyna','sacristia','palafox','rosario','zocalo
 // factual one-line description of what each place is (shown in tooltips)
 const SUMMARIES={
  mex:"Mexico City’s main international airport; Terminal 2 handles Aeroméxico.",
- uliv:"Apartment-style lodging in Condesa — the home base for both Mexico City stays.",
+ uliv:"Apartment-style lodging in Condesa, the home base for both Mexico City stays.",
  lardo:"Elena Reygadas’s all-day Mediterranean restaurant in Condesa.",
  rosetta:"Roma Norte bakery known for its guava rolls and cardamom buns.",
  zocalo:"One of the world’s largest public squares, framed by the 16th–18th-century Metropolitan Cathedral.",
@@ -339,7 +339,7 @@ const SUMMARIES={
  rosario:"Gilded Baroque chapel inside Puebla’s Church of Santo Domingo.",
  zocalop:"Puebla’s main square, fronted by a cathedral with Mexico’s tallest church towers.",
  mural:"Regional Puebla restaurant, a prime spot for seasonal chiles en nogada.",
- cholula:"The Great Pyramid of Cholula — the largest pyramid by volume on earth — topped by a colonial church.",
+ cholula:"The Great Pyramid of Cholula, the largest pyramid by volume on earth, topped by a colonial church.",
 };
 
 /* ================= map ================= */
@@ -411,7 +411,7 @@ const pad=()=>innerWidth<840?PADM:PAD;
 function addCustomLayers(){
   const style=map.getStyle();
   const firstSymbol=style.layers.find(l=>l.type==='symbol')?.id;
-  // quiet cartography + hide flat building fills — non-fatal if a layer id moves
+  // quiet cartography + hide flat building fills (non-fatal if a layer id moves)
   try{
     style.layers.forEach(l=>{
       if(l.type==='fill'&&/building/.test(l.id)) map.setLayoutProperty(l.id,'visibility','none');
@@ -422,7 +422,7 @@ function addCustomLayers(){
       else if(sl==='housenumber') map.setLayoutProperty(l.id,'visibility','none');
     });
   }catch(e){console.warn('label pass:',e)}
-  // glass extrusions — a failure here must never take the routes down with it
+  // glass extrusions: a failure here must never take the routes down with it
   try{
     const srcName=Object.keys(style.sources).find(s=>style.sources[s].type==='vector');
     if(srcName&&!map.getLayer('glass-buildings')) map.addLayer({
@@ -437,7 +437,7 @@ function addCustomLayers(){
     if(map.getLayer('glass-buildings'))
       map.setLayoutProperty('glass-buildings','visibility',mode==='3d'?'visible':'none');
   }catch(e){console.warn('buildings:',e)}
-  // neighborhood tints — soft per-barrio color, dropped in below the roads
+  // neighborhood tints: soft per-barrio color, dropped in below the roads
   try{
     const firstRoad=style.layers.find(l=>l['source-layer']==='transportation'||/road|highway|bridge|tunnel/.test(l.id))?.id||firstSymbol;
     if(!map.getSource('hoods')) map.addSource('hoods',{type:'geojson',data:HOODS});
@@ -449,7 +449,7 @@ function addCustomLayers(){
   }catch(e){console.warn('hoods:',e)}
   // day routes: casing outline (theme-contrast) under a full-opacity core, plus a
   // colored glow that's stronger in dark mode so lines read solid on the dark map.
-  // widths scale with zoom — every add is guarded so re-runs are idempotent
+  // widths scale with zoom; every add is guarded so re-runs are idempotent
   const casing=theme==='light'?'rgba(255,255,255,.95)':'rgba(4,8,18,.85)';
   const glowOp=theme==='light'?0.16:0.34, glowBlur=theme==='light'?2:2.4;
   DAYS.forEach(day=>{try{
@@ -497,7 +497,7 @@ map.on('load',()=>{
   map.fitBounds(cdmxBounds,{padding:pad(),pitch:basePitch(),bearing:baseBearing(),duration:rmq?0:2200});
 });
 // some embedded webviews report a stale container size at init and never
-// notify the ResizeObserver — nudge for the first few seconds, refitting
+// notify the ResizeObserver, so nudge for the first few seconds, refitting
 // the overview as long as the user hasn't taken over
 let userMoved=false;
 ['pointerdown','wheel','touchstart'].forEach(ev=>map.getCanvas().addEventListener(ev,()=>{userMoved=true},{passive:true}));
@@ -595,7 +595,7 @@ function showIntro(){
      <div class="kick"><i></i>Overview</div>
      <h3>Mexico City · Aug 8–16, 2026</h3>
      <p class="blurb">Home base is ULIV Condesa (the white pin). Each colored line is one day, following the
-     real streets — dotted for walking, solid for a ride or the ADO bus east to Puebla and Cholula.
+     real streets: dotted for walking, solid for a ride or the ADO bus east to Puebla and Cholula.
      Hover a day below, or any stop, for details.</p>
      <ul>
        <li><span class="tm">9</span><span class="nm"><b>days</b> · Aug 8–16</span></li>
@@ -621,7 +621,7 @@ DAYS.forEach(day=>{
   c.addEventListener('click',()=>select(day.id));
   rail.appendChild(c);chips[day.id]=c;
 });
-// collapse control — chevron on the rail, "Days" pill to restore
+// collapse control: chevron on the rail, "Days" pill to restore
 const railHide=document.createElement('button');
 railHide.id='railHide';railHide.type='button';
 railHide.setAttribute('aria-label','Hide day selector');railHide.textContent='⌄';
