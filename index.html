@@ -164,19 +164,24 @@
   .maplibregl-ctrl-group{background:var(--panel)!important;border:1px solid var(--line);border-radius:10px!important;overflow:hidden}
   .maplibregl-ctrl-group button{background:transparent!important}
   .maplibregl-ctrl-group button .maplibregl-ctrl-icon{filter:invert(.85) hue-rotate(180deg)}
-  /* ---- angle d-pad (rotate + tilt) ---- */
-  .dpad{display:flex;flex-direction:column;align-items:center;padding:3px;gap:2px}
-  .dpad .dp-mid{display:flex;gap:2px}
-  .dpad .dp{width:24px;height:20px;padding:0;border:0;border-radius:5px;
+  /* ---- angle thumbstick (rotate + tilt) ---- */
+  .stick{background:none!important;border:0!important;box-shadow:none!important}
+  .stk{position:relative;width:44px;height:44px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
-    background:transparent;color:var(--mut);cursor:pointer;
-    font:10px/1 var(--body);touch-action:none;transition:background .12s,color .12s}
-  .dpad .dp-c{font-size:8px}
-  .dpad .dp:hover{background:rgba(150,200,255,.14);color:var(--ink)}
-  .dpad .dp:active{background:rgba(150,200,255,.26);color:var(--ink)}
-  .dpad .dp:focus-visible{outline:1.5px solid #55d6f0;outline-offset:-2px}
-  body.light .dpad .dp:hover{background:rgba(30,60,110,.1)}
-  body.light .dpad .dp:active{background:rgba(30,60,110,.2)}
+    background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(14px);
+    box-shadow:0 3px 10px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06);
+    cursor:grab;touch-action:none}
+  .stk::before{content:"";position:absolute;inset:5px;border-radius:50%;
+    border:1px dashed rgba(150,200,255,.16)}
+  .stk.on{cursor:grabbing}
+  .stk:focus-visible{outline:1.5px solid #55d6f0;outline-offset:2px}
+  .knob{position:relative;width:15px;height:15px;border-radius:50%;
+    background:var(--mut);box-shadow:0 1px 4px rgba(0,0,0,.55);
+    transition:transform .13s ease, background .13s}
+  .stk:hover .knob{background:var(--ink)}
+  .stk.on .knob{transition:background .13s;background:#8fc5ff}
+  body.light .stk::before{border-color:rgba(30,60,110,.16)}
+  body.light .knob{box-shadow:0 1px 4px rgba(20,35,60,.3)}
   @media (max-width:840px){
     #plate{left:12px;top:12px;padding:10px 13px}
     #plate h1{font-size:22px}
@@ -389,44 +394,63 @@ function setMode(m){
 document.getElementById('m2d').addEventListener('click',()=>setMode('2d'));
 document.getElementById('m3d').addEventListener('click',()=>setMode('3d'));
 
-/* ---- angle d-pad: rotates and tilts exactly like a right-drag ----
+/* ---- angle thumbstick: rotates and tilts like a right-drag ----
    Measured against a real drag: bearing += dx*0.8 and pitch -= dy*0.5, so
-   dragging right raises bearing and dragging up raises pitch. The arrows
-   mirror that sign convention. Tap = one step; press and hold = continuous. */
-class AnglePad{
+   pushing right raises bearing and pushing up raises pitch. Speed is
+   proportional to how far the knob is pushed, like an analog stick.
+   Double-click recenters; arrow keys step it for keyboard users. */
+class AngleStick{
   onAdd(m){
     this._map=m;
     const c=this._c=document.createElement('div');
-    c.className='maplibregl-ctrl maplibregl-ctrl-group dpad';
-    c.innerHTML=
-      '<button class="dp dp-u" type="button" aria-label="Tilt up" title="Tilt up">▲</button>'+
-      '<div class="dp-mid">'+
-        '<button class="dp dp-l" type="button" aria-label="Rotate left" title="Rotate left">◀</button>'+
-        '<button class="dp dp-c" type="button" aria-label="Reset angle" title="Reset angle">◇</button>'+
-        '<button class="dp dp-r" type="button" aria-label="Rotate right" title="Rotate right">▶</button>'+
-      '</div>'+
-      '<button class="dp dp-d" type="button" aria-label="Tilt down" title="Tilt down">▼</button>';
-    const nudge=(db,dp)=>m.jumpTo({
-      bearing:m.getBearing()+db,
-      pitch:Math.max(0,Math.min(m.getMaxPitch(),m.getPitch()+dp))});
-    let raf=null,timer=null;
-    const stop=()=>{if(raf)cancelAnimationFrame(raf);raf=null;clearTimeout(timer);timer=null};
-    const bind=(sel,db,dp)=>{
-      const b=c.querySelector(sel);
-      b.addEventListener('pointerdown',e=>{
-        e.preventDefault();e.stopPropagation();
-        nudge(db*12,dp*6);                                  // discrete step on tap
-        timer=setTimeout(()=>{                              // then glide while held
-          const loop=()=>{nudge(db*1.1,dp*.65);raf=requestAnimationFrame(loop)};
-          raf=requestAnimationFrame(loop);
-        },250);
-      });
-      ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,stop));
-      b.addEventListener('click',e=>e.stopPropagation());
+    c.className='maplibregl-ctrl stick';
+    c.innerHTML='<div class="stk" tabindex="0" role="application"'+
+      ' aria-label="Rotate and tilt the map. Drag, or use arrow keys."'+
+      ' title="Drag to rotate and tilt. Double-click to reset."><span class="knob"></span></div>';
+    const pad=c.querySelector('.stk'), knob=c.querySelector('.knob');
+    const R=16;                                   // max knob travel, px
+    let raf=null, vx=0, vy=0, active=false;
+    const setKnob=(x,y)=>{knob.style.transform='translate('+x+'px,'+y+'px)'};
+    const loop=()=>{
+      if(vx||vy) m.jumpTo({
+        bearing:m.getBearing()+vx*0.08,           // push right -> bearing up
+        pitch:Math.max(0,Math.min(m.getMaxPitch(),m.getPitch()-vy*0.05))}); // push up -> pitch up
+      raf=requestAnimationFrame(loop);
     };
-    bind('.dp-u',0,1); bind('.dp-d',0,-1);                  // up = more tilt
-    bind('.dp-l',-1,0); bind('.dp-r',1,0);                  // right = drag-right
-    c.querySelector('.dp-c').addEventListener('click',e=>{
+    const move=e=>{
+      if(!active)return;
+      const r=pad.getBoundingClientRect();
+      let x=e.clientX-(r.left+r.width/2), y=e.clientY-(r.top+r.height/2);
+      const d=Math.hypot(x,y);
+      if(d>R){x=x/d*R; y=y/d*R}
+      vx=x; vy=y; setKnob(x,y);
+    };
+    const end=()=>{
+      if(!active)return;
+      active=false; vx=vy=0; setKnob(0,0); pad.classList.remove('on');
+      if(raf)cancelAnimationFrame(raf); raf=null;
+      window.removeEventListener('pointermove',move);
+      window.removeEventListener('pointerup',end);
+      window.removeEventListener('pointercancel',end);
+    };
+    // track on window, not via pointer capture, so releasing outside still stops it
+    pad.addEventListener('pointerdown',e=>{
+      e.preventDefault(); e.stopPropagation();
+      active=true; pad.classList.add('on');
+      move(e);
+      window.addEventListener('pointermove',move);
+      window.addEventListener('pointerup',end);
+      window.addEventListener('pointercancel',end);
+      if(!raf)raf=requestAnimationFrame(loop);
+    });
+    pad.addEventListener('keydown',e=>{
+      const K={ArrowLeft:[-12,0],ArrowRight:[12,0],ArrowUp:[0,6],ArrowDown:[0,-6]}[e.key];
+      if(!K)return;
+      e.preventDefault(); e.stopPropagation();
+      m.jumpTo({bearing:m.getBearing()+K[0],
+        pitch:Math.max(0,Math.min(m.getMaxPitch(),m.getPitch()+K[1]))});
+    });
+    pad.addEventListener('dblclick',e=>{
       e.stopPropagation();
       m.easeTo({pitch:basePitch(),bearing:baseBearing(),duration:rmq?0:500});
     });
@@ -434,7 +458,7 @@ class AnglePad{
   }
   onRemove(){this._c.remove();this._map=undefined}
 }
-map.addControl(new AnglePad(),'bottom-left');
+map.addControl(new AngleStick(),'bottom-left');
 
 /* ---- dark / light theme ---- */
 function paintThemeChips(){
