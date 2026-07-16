@@ -37,12 +37,6 @@
     max-width:calc(100vw - 24px);overflow-x:auto;scrollbar-width:none;
     transition:transform .35s ease,opacity .3s ease}
   #rail::-webkit-scrollbar{display:none}
-  #railHide{position:sticky;right:0;flex:none;order:99;align-self:stretch;
-    padding:0 8px 0 9px;margin-left:1px;border:0;border-left:1px solid var(--line);
-    background:var(--panel);color:var(--faint);cursor:pointer;
-    font:600 15px/1 var(--body);transition:color .15s}
-  #railHide:hover{color:var(--ink)}
-  #railHide:focus-visible{outline:1.5px solid #55d6f0;outline-offset:-2px}
   #railShow{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:6;
     display:none;align-items:center;gap:7px;padding:9px 15px;border-radius:12px;
     background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(14px);
@@ -63,6 +57,7 @@
   .chip:focus-visible{outline:1.5px solid #55d6f0;outline-offset:2px}
   /* ---- card ---- */
   #card{position:fixed;right:20px;top:20px;z-index:5;width:312px;pointer-events:none;
+    max-height:calc(100vh - 40px);
     background:var(--panel);border:1px solid var(--line);border-radius:16px;
     backdrop-filter:blur(16px);overflow:hidden;
     box-shadow:0 24px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
@@ -79,7 +74,7 @@
   #card .kick i{width:9px;height:9px;border-radius:50%;background:var(--c,#8fc5ff);box-shadow:0 0 8px var(--c,#8fc5ff)}
   #card h3{font:600 19px/1.15 var(--disp);letter-spacing:.02em;margin:7px 0 5px;text-wrap:balance}
   #card .blurb{font:400 11.5px/1.55 var(--body);color:var(--mut);margin-bottom:8px}
-  #card ul{list-style:none;max-height:214px;overflow:hidden}
+  #card ul{list-style:none}
   #card li{display:flex;gap:9px;padding:2.5px 0;font:400 11.5px/1.45 var(--body)}
   #card li .tm{flex:none;width:46px;font:500 9.5px/1.7 var(--mono);color:var(--faint);
     font-variant-numeric:tabular-nums;text-align:right}
@@ -188,9 +183,8 @@
     #plate .sub{display:none}
     #ctrls{left:12px;top:84px}
     #ctrls button{padding:8px 11px}
-    #card{left:12px;right:12px;width:auto;top:auto;bottom:72px}
+    #card{left:12px;right:12px;width:auto;top:auto;bottom:72px;max-height:calc(100vh - 96px)}
     #card .ph{height:92px}
-    #card ul{max-height:118px}
     #card .blurb{display:none}
     #rail,#railShow{bottom:10px}
   }
@@ -705,15 +699,35 @@ DAYS.forEach(day=>{
   c.addEventListener('click',()=>select(day.id));
   rail.appendChild(c);chips[day.id]=c;
 });
-// collapse control: chevron on the rail, "Days" pill to restore
-const railHide=document.createElement('button');
-railHide.id='railHide';railHide.type='button';
-railHide.setAttribute('aria-label','Hide day selector');railHide.textContent='⌄';
-railHide.addEventListener('click',()=>{document.body.classList.add('rail-hidden');
-  setHover(null,null);document.getElementById('railShow').focus()});
-rail.appendChild(railHide);
-document.getElementById('railShow').addEventListener('click',()=>{
-  document.body.classList.remove('rail-hidden');allChip.focus()});
+/* ---- the rail tucks itself away when unused and comes back when the pointer
+   nears the bottom of the screen, collapsing to a small "Days" pill ---- */
+const railShowBtn=document.getElementById('railShow');
+const RAIL_ZONE=150, RAIL_DELAY=2600;
+let railTimer=null, railHot=false;
+const railIsHidden=()=>document.body.classList.contains('rail-hidden');
+function showRail(){
+  clearTimeout(railTimer); railTimer=null;
+  document.body.classList.remove('rail-hidden');
+}
+function hideRail(){
+  railTimer=null;
+  if(!railHot){document.body.classList.add('rail-hidden'); setHover(null,null)}
+}
+function armRail(){                       // arm once; don't restart on every move
+  if(railTimer||railHot||railIsHidden())return;
+  railTimer=setTimeout(hideRail,RAIL_DELAY);
+}
+rail.addEventListener('pointerenter',()=>{railHot=true;showRail()});
+rail.addEventListener('pointerleave',()=>{railHot=false;armRail()});
+rail.addEventListener('focusin',()=>{railHot=true;showRail()});
+rail.addEventListener('focusout',()=>{railHot=false;armRail()});
+railShowBtn.addEventListener('pointerenter',showRail);
+railShowBtn.addEventListener('click',()=>{showRail();allChip.focus()});   // touch
+addEventListener('pointermove',e=>{
+  if(e.clientY>innerHeight-RAIL_ZONE){ if(railIsHidden()||railTimer) showRail(); }
+  else armRail();
+},{passive:true});
+railTimer=setTimeout(hideRail,4000);      // tuck away shortly after load
 const state={sel:null,hover:null,ref:null};
 function flyHome(){map.fitBounds(cdmxBounds,{padding:pad(),pitch:basePitch(),bearing:baseBearing(),duration:rmq?0:1600})}
 function flyDay(day){
