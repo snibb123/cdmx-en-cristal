@@ -164,6 +164,19 @@
   .maplibregl-ctrl-group{background:var(--panel)!important;border:1px solid var(--line);border-radius:10px!important;overflow:hidden}
   .maplibregl-ctrl-group button{background:transparent!important}
   .maplibregl-ctrl-group button .maplibregl-ctrl-icon{filter:invert(.85) hue-rotate(180deg)}
+  /* ---- angle d-pad (rotate + tilt) ---- */
+  .dpad{display:flex;flex-direction:column;align-items:center;padding:3px;gap:2px}
+  .dpad .dp-mid{display:flex;gap:2px}
+  .dpad .dp{width:24px;height:20px;padding:0;border:0;border-radius:5px;
+    display:flex;align-items:center;justify-content:center;
+    background:transparent;color:var(--mut);cursor:pointer;
+    font:10px/1 var(--body);touch-action:none;transition:background .12s,color .12s}
+  .dpad .dp-c{font-size:8px}
+  .dpad .dp:hover{background:rgba(150,200,255,.14);color:var(--ink)}
+  .dpad .dp:active{background:rgba(150,200,255,.26);color:var(--ink)}
+  .dpad .dp:focus-visible{outline:1.5px solid #55d6f0;outline-offset:-2px}
+  body.light .dpad .dp:hover{background:rgba(30,60,110,.1)}
+  body.light .dpad .dp:active{background:rgba(30,60,110,.2)}
   @media (max-width:840px){
     #plate{left:12px;top:12px;padding:10px 13px}
     #plate h1{font-size:22px}
@@ -375,6 +388,53 @@ function setMode(m){
 }
 document.getElementById('m2d').addEventListener('click',()=>setMode('2d'));
 document.getElementById('m3d').addEventListener('click',()=>setMode('3d'));
+
+/* ---- angle d-pad: rotates and tilts exactly like a right-drag ----
+   Measured against a real drag: bearing += dx*0.8 and pitch -= dy*0.5, so
+   dragging right raises bearing and dragging up raises pitch. The arrows
+   mirror that sign convention. Tap = one step; press and hold = continuous. */
+class AnglePad{
+  onAdd(m){
+    this._map=m;
+    const c=this._c=document.createElement('div');
+    c.className='maplibregl-ctrl maplibregl-ctrl-group dpad';
+    c.innerHTML=
+      '<button class="dp dp-u" type="button" aria-label="Tilt up" title="Tilt up">▲</button>'+
+      '<div class="dp-mid">'+
+        '<button class="dp dp-l" type="button" aria-label="Rotate left" title="Rotate left">◀</button>'+
+        '<button class="dp dp-c" type="button" aria-label="Reset angle" title="Reset angle">◇</button>'+
+        '<button class="dp dp-r" type="button" aria-label="Rotate right" title="Rotate right">▶</button>'+
+      '</div>'+
+      '<button class="dp dp-d" type="button" aria-label="Tilt down" title="Tilt down">▼</button>';
+    const nudge=(db,dp)=>m.jumpTo({
+      bearing:m.getBearing()+db,
+      pitch:Math.max(0,Math.min(m.getMaxPitch(),m.getPitch()+dp))});
+    let raf=null,timer=null;
+    const stop=()=>{if(raf)cancelAnimationFrame(raf);raf=null;clearTimeout(timer);timer=null};
+    const bind=(sel,db,dp)=>{
+      const b=c.querySelector(sel);
+      b.addEventListener('pointerdown',e=>{
+        e.preventDefault();e.stopPropagation();
+        nudge(db*12,dp*6);                                  // discrete step on tap
+        timer=setTimeout(()=>{                              // then glide while held
+          const loop=()=>{nudge(db*1.1,dp*.65);raf=requestAnimationFrame(loop)};
+          raf=requestAnimationFrame(loop);
+        },250);
+      });
+      ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,stop));
+      b.addEventListener('click',e=>e.stopPropagation());
+    };
+    bind('.dp-u',0,1); bind('.dp-d',0,-1);                  // up = more tilt
+    bind('.dp-l',-1,0); bind('.dp-r',1,0);                  // right = drag-right
+    c.querySelector('.dp-c').addEventListener('click',e=>{
+      e.stopPropagation();
+      m.easeTo({pitch:basePitch(),bearing:baseBearing(),duration:rmq?0:500});
+    });
+    return c;
+  }
+  onRemove(){this._c.remove();this._map=undefined}
+}
+map.addControl(new AnglePad(),'bottom-left');
 
 /* ---- dark / light theme ---- */
 function paintThemeChips(){
