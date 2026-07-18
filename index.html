@@ -29,7 +29,24 @@
   #plate .eyebrow{font:500 10px/1 var(--mono);letter-spacing:.24em;color:var(--mut)}
   #plate h1{font:600 30px/1 var(--disp);letter-spacing:.06em;margin:7px 0 5px}
   #plate h1 b{font-weight:500;color:transparent;-webkit-text-stroke:1px rgba(160,215,255,.8)}
-  #plate .sub{font:400 11.5px/1.5 var(--body);color:var(--mut);max-width:250px}
+  /* ---- legend (accent tracks the active day) ---- */
+  #legend{position:fixed;left:22px;top:210px;z-index:5;pointer-events:none;--lg:#8fc5ff;
+    padding:11px 14px 12px;border-radius:12px;background:var(--panel);
+    border:1px solid var(--line);backdrop-filter:blur(14px)}
+  #legend .lg-hd{display:flex;align-items:center;gap:7px;margin-bottom:9px;
+    font:600 9px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mut)}
+  #legend .lg-hd::before{content:"";width:8px;height:8px;border-radius:50%;flex:none;
+    background:var(--lg);box-shadow:0 0 7px var(--lg);transition:background .2s,box-shadow .2s}
+  #legend .lg-row{display:flex;align-items:center;gap:9px;padding:2px 0;
+    font:400 11px/1.3 var(--body);color:var(--ink)}
+  #legend .lg-swatch{flex:none;width:24px;height:14px;display:flex;align-items:center;justify-content:center}
+  #legend .lg-swatch::before{content:"";display:block;transition:background .2s,box-shadow .2s}
+  #legend .lg-swatch.solid::before{width:100%;height:3px;border-radius:2px;
+    background:var(--lg);box-shadow:0 0 6px var(--lg)}
+  #legend .lg-swatch.dashed::before{width:100%;height:3px;
+    background:repeating-linear-gradient(90deg,var(--lg) 0 3.5px,transparent 3.5px 7px)}
+  #legend .lg-swatch.pin::before{width:12px;height:12px;border-radius:50%;
+    background:var(--lg);border:2px solid #fff;box-shadow:0 0 6px var(--lg)}
   /* ---- chips ---- */
   #rail{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:6;
     display:flex;gap:5px;padding:7px 8px;border-radius:14px;background:var(--panel);
@@ -181,9 +198,9 @@
   @media (max-width:840px){
     #plate{left:12px;top:12px;padding:10px 13px}
     #plate h1{font-size:22px}
-    #plate .sub{display:none}
-    #ctrls{left:12px;top:84px}
+    #ctrls{left:12px;top:74px}
     #ctrls button{padding:8px 11px}
+    #legend{left:12px;top:120px;padding:9px 11px}
     #card{left:12px;right:12px;width:auto;top:auto;bottom:72px;max-height:calc(100vh - 96px)}
     #card .ph{height:92px}
     #card .blurb{display:none}
@@ -197,8 +214,13 @@
 <header id="plate">
   <div class="eyebrow">AUG 8–16 · 2026 · MEXICO CITY</div>
   <h1>CDMX</h1>
-  <div class="sub">Hover a day to light its route. Dotted walks, solid rides.</div>
 </header>
+<div id="legend" aria-label="Legend">
+  <div class="lg-hd" id="lg-hd">All days</div>
+  <div class="lg-row"><span class="lg-swatch solid"></span>Ride or bus</div>
+  <div class="lg-row"><span class="lg-swatch dashed"></span>Walk</div>
+  <div class="lg-row"><span class="lg-swatch pin"></span>Stop</div>
+</div>
 <div id="ctrls">
   <div id="modes" role="group" aria-label="Map view mode">
     <button id="m2d" type="button">2D</button><button id="m3d" type="button" class="on">3D</button>
@@ -249,7 +271,7 @@ const DAYS=[
   {t:'2:30p',r:'maizajo',d:'Lunch; heirloom-corn tortillas and tacos.'},
   {t:'8:00p',r:'parnita',d:'Casual dinner of Mexican botanas.'},
   {t:'10:30p',r:'juanes',d:'Late-night tacos; open until 3 am, cash only.'}],
- tags:[['todo','Book Máximo for Tue 7p']]},
+ tags:[]},
 {id:'d4',n:4,date:'Tue · Aug 11',chip:'Coyoacán',hex:'#5b8cff',
  title:'Coyoacán',
  blurb:'The southern colonial neighborhood of Coyoacán, centered on Frida Kahlo’s Casa Azul (timed 11:00 entry) and lunch on the plaza.',
@@ -257,9 +279,8 @@ const DAYS=[
   {t:'11:00a',r:'frida',d:'Booked, 2 tickets, 11:00 am. 15-minute entry window; bring ID.'},
   {t:'1:00p',r:'danz',d:'Lunch on the plaza. If unconfirmed, arrive at the 12:30 opening.'},
   {t:'2:45p',r:'mcoyo',d:'Short visit; the tostada counter is the highlight.'},
-  {t:'3:30p',r:'trotsky',d:'Optional; about 60 minutes.'},
-  {t:'7:00p',r:'maximo',d:'Reserved dinner, 7:00 pm. Early, before the 9 am Puebla bus.'}],
- tags:[['ok','Casa Azul 11:00a'],['todo','Danzantes: confirm WhatsApp'],['todo','Máximo: book 7:00p']]},
+  {t:'3:30p',r:'trotsky',d:'Optional; about 60 minutes.'}],
+ tags:[['ok','Casa Azul 11:00a'],['todo','Danzantes: confirm WhatsApp']]},
 {id:'d5',n:5,date:'Wed · Aug 12',chip:'Puebla',hex:'#e77ef2',
  title:'Puebla',
  blurb:'Bus east to Puebla for its UNESCO-listed center: the Palafoxiana library, the Rosary Chapel, and chiles en nogada, a dish native to the city.',
@@ -334,7 +355,6 @@ const SUMMARIES={
  danz:"Upscale Oaxacan restaurant on a Coyoacán plaza, known for mole and mezcal.",
  mcoyo:"Covered market in Coyoacán with crafts and a well-known tostada counter.",
  trotsky:"The fortified house where Leon Trotsky lived and was assassinated in 1940, now a museum.",
- maximo:"Eduardo García’s Michelin-starred, market-driven restaurant in Roma Norte.",
  tapo:"Mexico City’s eastern bus terminal, for first-class ADO coaches to Puebla.",
  castillo:"Hilltop castle in Chapultepec, once an imperial residence, now the National History Museum.",
  antro:"Major archaeology and ethnography museum; home of the Aztec Sun Stone.",
@@ -507,8 +527,8 @@ function addCustomLayers(){
     if(srcName&&!map.getLayer('glass-buildings')) map.addLayer({
       id:'glass-buildings',type:'fill-extrusion',source:srcName,'source-layer':'building',minzoom:13,
       paint:{
-        'fill-extrusion-color':theme==='light'?'#b7c6d8':'#2b4468',
-        'fill-extrusion-opacity':theme==='light'?0.55:0.44,
+        'fill-extrusion-color':theme==='light'?'#b7c6d8':'#22344f',
+        'fill-extrusion-opacity':theme==='light'?0.55:0.28,   // darker/dimmer in dark mode so routes aren't lost in blue clutter
         'fill-extrusion-height':['coalesce',['get','render_height'],11],
         'fill-extrusion-base':['coalesce',['get','render_min_height'],0],
         'fill-extrusion-vertical-gradient':true
@@ -526,24 +546,25 @@ function addCustomLayers(){
       paint:{'line-color':['get','color'],'line-width':1.3,'line-opacity':theme==='light'?0.6:0.32,
         'line-dasharray':[3,2]}},firstRoad);
   }catch(e){console.warn('hoods:',e)}
-  // day routes: casing outline (theme-contrast) under a full-opacity core, plus a
-  // colored glow that's stronger in dark mode so lines read solid on the dark map.
-  // widths scale with zoom; every add is guarded so re-runs are idempotent
-  const casing=theme==='light'?'rgba(255,255,255,.95)':'rgba(4,8,18,.85)';
-  const glowOp=theme==='light'?0.16:0.34, glowBlur=theme==='light'?2:2.4;
+  // day routes: a colored glow (hue bloom), a WHITE casing that lifts the line
+  // off the map, and a bright colored core on top. The white edge scales tight
+  // at overview (so color dominates thin lines) and lifts more up close. This
+  // is what finally makes the routes read clearly on the dark basemap.
+  const casing=theme==='light'?'rgba(255,255,255,.95)':'rgba(255,255,255,.9)';
+  const glowOp=theme==='light'?0.16:0.42, glowBlur=theme==='light'?2:1.8;
   DAYS.forEach(day=>{try{
     if(!map.getSource(day.id)) map.addSource(day.id,{type:'geojson',data:ROUTES[day.id]});
     const add=(id,def)=>{if(!map.getLayer(id))map.addLayer(Object.assign(
       {id,type:'line',source:day.id,layout:{'line-cap':'round','line-join':'round'}},def),firstSymbol)};
-    add(day.id+'-glow',{paint:{'line-color':day.hex,'line-width':lw(12,30),'line-opacity':glowOp,'line-blur':glowBlur}});
+    add(day.id+'-glow',{paint:{'line-color':day.hex,'line-width':lw(10,22),'line-opacity':glowOp,'line-blur':glowBlur}});
     add(day.id+'-case-ride',{filter:['!=',['get','mode'],'walk'],
-      paint:{'line-color':casing,'line-width':lw(8,17),'line-opacity':.92}});
+      paint:{'line-color':casing,'line-width':lw(6,16.5),'line-opacity':.9}});
     add(day.id+'-case-walk',{filter:['==',['get','mode'],'walk'],
-      paint:{'line-color':casing,'line-width':lw(9,18),'line-opacity':.92,'line-dasharray':[0,1.9]}});
+      paint:{'line-color':casing,'line-width':lw(6.5,17.5),'line-opacity':.9,'line-dasharray':[0,1.9]}});
     add(day.id+'-ride',{filter:['!=',['get','mode'],'walk'],
-      paint:{'line-color':day.hex,'line-width':lw(4.5,12),'line-opacity':1}});
+      paint:{'line-color':day.hex,'line-width':lw(5,13),'line-opacity':1}});
     add(day.id+'-walk',{filter:['==',['get','mode'],'walk'],
-      paint:{'line-color':day.hex,'line-width':lw(5,13),'line-opacity':1,'line-dasharray':[0,1.9]}});
+      paint:{'line-color':day.hex,'line-width':lw(5.5,14),'line-opacity':1,'line-dasharray':[0,1.9]}});
   }catch(e){console.warn('route',day.id,e)}});
 }
 // Re-add custom layers whenever a style swap wipes them. Do NOT gate on
@@ -748,7 +769,7 @@ function render(){
   // clicking a day isolates it: every other day's route and pins are hidden
   // outright. Hovering (without a selection) only dims, as a preview.
   const isolate=!!state.sel;
-  const gBase=theme==='light'?.16:.34;               // glow opacity matches addCustomLayers
+  const gBase=theme==='light'?.16:.42;               // glow opacity matches addCustomLayers
   if(map.getLayer('d1-glow')) DAYS.forEach(day=>{
     const on=act===day.id, dimmed=act&&!on, hide=isolate&&!on;
     RT_SFX.forEach(sfx=>{const id=day.id+sfx;
@@ -756,12 +777,12 @@ function render(){
     map.setPaintProperty(day.id+'-glow','line-opacity',on?gBase+.16:dimmed?.05:gBase);
     map.setPaintProperty(day.id+'-ride','line-opacity',on?1:dimmed?.08:1);
     map.setPaintProperty(day.id+'-walk','line-opacity',on?1:dimmed?.08:1);
-    map.setPaintProperty(day.id+'-case-ride','line-opacity',on?1:dimmed?.06:.92);
-    map.setPaintProperty(day.id+'-case-walk','line-opacity',on?1:dimmed?.06:.92);
-    map.setPaintProperty(day.id+'-ride','line-width',on?lw(6,14):lw(4.5,12));
-    map.setPaintProperty(day.id+'-walk','line-width',on?lw(6.5,15):lw(5,13));
-    map.setPaintProperty(day.id+'-case-ride','line-width',on?lw(10,19):lw(8,17));
-    map.setPaintProperty(day.id+'-case-walk','line-width',on?lw(11,20):lw(9,18));
+    map.setPaintProperty(day.id+'-case-ride','line-opacity',on?1:dimmed?.06:.9);
+    map.setPaintProperty(day.id+'-case-walk','line-opacity',on?1:dimmed?.06:.9);
+    map.setPaintProperty(day.id+'-ride','line-width',on?lw(6.5,15):lw(5,13));
+    map.setPaintProperty(day.id+'-walk','line-width',on?lw(7,16):lw(5.5,14));
+    map.setPaintProperty(day.id+'-case-ride','line-width',on?lw(8,19):lw(6,16.5));
+    map.setPaintProperty(day.id+'-case-walk','line-width',on?lw(8.5,20):lw(6.5,17.5));
   });
   DAYS.forEach(day=>chips[day.id].classList.toggle('on',act===day.id||state.sel===day.id));
   allChip.classList.toggle('on',!state.sel&&!act);
@@ -772,6 +793,11 @@ function render(){
     m.el.classList.toggle('dim',!gone&&!!act&&!mine&&!home);
     m.el.classList.toggle('hot',!!mine&&state.ref===m.ref);
   });
+  // legend accent + heading follow the active day (or reset to the neutral "all days")
+  const lg=document.getElementById('legend');
+  if(lg){const d=act&&DAYS.find(x=>x.id===act);
+    lg.style.setProperty('--lg',d?d.hex:'#8fc5ff');
+    document.getElementById('lg-hd').textContent=d?('Day '+d.n+' · '+d.chip):'All days';}
   if(act)showDay(DAYS.find(d=>d.id===act),state.ref);else showIntro();
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){state.sel=null;state.hover=null;render();flyHome()}});
