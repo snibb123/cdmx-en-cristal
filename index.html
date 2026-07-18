@@ -29,6 +29,8 @@
   #plate .eyebrow{font:500 10px/1 var(--mono);letter-spacing:.24em;color:var(--mut)}
   #plate h1{font:600 30px/1 var(--disp);letter-spacing:.06em;margin:7px 0 5px}
   #plate h1 b{font-weight:500;color:transparent;-webkit-text-stroke:1px rgba(160,215,255,.8)}
+  #plate .stat{margin-top:3px;font:500 10.5px/1.4 var(--mono);letter-spacing:.03em;
+    color:var(--mut);font-variant-numeric:tabular-nums}
   /* ---- legend (accent tracks the active day) ---- */
   #legend{position:fixed;left:22px;top:210px;z-index:5;pointer-events:none;--lg:#8fc5ff;
     padding:11px 14px 12px;border-radius:12px;background:var(--panel);
@@ -47,6 +49,12 @@
     background:repeating-linear-gradient(90deg,var(--lg) 0 3.5px,transparent 3.5px 7px)}
   #legend .lg-swatch.pin::before{width:12px;height:12px;border-radius:50%;
     background:var(--lg);border:2px solid #fff;box-shadow:0 0 6px var(--lg)}
+  #legend .lg-follow{display:none;margin-top:10px;padding:7px 11px;border-radius:8px;
+    border:1px solid var(--lg);background:transparent;color:var(--lg);cursor:pointer;
+    pointer-events:auto;font:600 9.5px/1 var(--mono);letter-spacing:.12em;
+    text-transform:uppercase;transition:background .15s,color .15s}
+  #legend .lg-follow:hover{background:var(--lg);color:#0a0f1e}
+  #legend .lg-follow:focus-visible{outline:1.5px solid #55d6f0;outline-offset:2px}
   /* ---- chips ---- */
   #rail{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:6;
     display:flex;gap:5px;padding:7px 8px;border-radius:14px;background:var(--panel);
@@ -214,12 +222,14 @@
 <header id="plate">
   <div class="eyebrow">AUG 8–16 · 2026 · MEXICO CITY</div>
   <h1>CDMX</h1>
+  <div class="stat" id="plateStat"></div>
 </header>
 <div id="legend" aria-label="Legend">
   <div class="lg-hd" id="lg-hd">All days</div>
   <div class="lg-row"><span class="lg-swatch solid"></span>Ride or bus</div>
   <div class="lg-row"><span class="lg-swatch dashed"></span>Walk</div>
   <div class="lg-row"><span class="lg-swatch pin"></span>Stop</div>
+  <button id="followBtn" class="lg-follow" type="button">▶ Follow route</button>
 </div>
 <div id="ctrls">
   <div id="modes" role="group" aria-label="Map view mode">
@@ -399,6 +409,7 @@ let mode='3d';
 const basePitch=()=>mode==='3d'?58:0, baseBearing=()=>mode==='3d'?-15:0;
 function setMode(m){
   if(mode===m)return;
+  stopFollow(false);
   mode=m;
   document.getElementById('m2d').classList.toggle('on',m==='2d');
   document.getElementById('m3d').classList.toggle('on',m==='3d');
@@ -482,6 +493,7 @@ function paintThemeChips(){
 }
 function setTheme(t){
   if(theme===t)return;
+  stopFollow(false);
   theme=t;
   try{localStorage.setItem('cdmx-theme',t)}catch(e){}
   document.body.classList.toggle('light',t==='light');
@@ -699,7 +711,7 @@ function showIntro(){
      Hover a day below, or any stop, for details.</p>
      <ul>
        <li><span class="tm">9</span><span class="nm"><b>days</b> · Aug 8–16</span></li>
-       <li><span class="tm">33</span><span class="nm"><b>stops</b> · CDMX + Puebla + Cholula</span></li>
+       <li><span class="tm">${TRIP.stops}</span><span class="nm"><b>stops</b> · CDMX + Puebla + Cholula</span></li>
        <li><span class="tm">5</span><span class="nm"><b>tables booked</b> · 3 still to chase</span></li>
      </ul>
      <div class="tags"><span class="tag">✓ Casa Azul 11:00a Tue</span><span class="tag todo">⚠ Contramar opens ~Jul 16</span></div>
@@ -759,10 +771,101 @@ function flyDay(day){
   map.fitBounds(b,{padding:pad(),pitch:p,duration:rmq?0:1600});
 }
 function select(id){
+  stopFollow(false);
   if(state.sel===id){state.sel=null;render();flyHome();return}
   state.sel=id;render();flyDay(DAYS.find(d=>d.id===id));
 }
 function setHover(id,ref){state.hover=id;state.ref=ref;render()}
+/* ---- trip distance stats (from OSRM leg lengths baked in data.js) ---- */
+const DAY_DIST={};const TRIP={stops:Object.keys(owner).length,total:0,walk:0};
+DAYS.forEach(d=>{let w=0,r=0;
+  ROUTES[d.id].features.forEach(f=>{const m=f.properties.m||0;
+    f.properties.mode==='walk'?w+=m:r+=m});
+  DAY_DIST[d.id]={walk:w,total:w+r};TRIP.total+=w+r;TRIP.walk+=w});
+const kmF=m=>{const k=m/1000;return k>=10?Math.round(k):+k.toFixed(1)};
+
+/* ---- follow mode: drive the selected day's route at street level.
+   Each leg gets a few seconds (paced by mode), the camera hugs the line and
+   turns with it, and it pauses at every stop to show that stop's card. ---- */
+const PACE={walk:60,ride:400,bus:3000};                    // flythrough m/s
+const CAMBY={walk:{z:16.5,p:63},ride:{z:15.2,p:58},bus:{z:12,p:47}};
+const EARTH=6371000,rad=x=>x*Math.PI/180;
+function distM(a,b){const dLat=rad(b[1]-a[1]),dLng=rad(b[0]-a[0]);
+  const s=Math.sin(dLat/2)**2+Math.cos(rad(a[1]))*Math.cos(rad(b[1]))*Math.sin(dLng/2)**2;
+  return 2*EARTH*Math.asin(Math.sqrt(s))}
+function bearM(a,b){const y=Math.sin(rad(b[0]-a[0]))*Math.cos(rad(b[1]));
+  const x=Math.cos(rad(a[1]))*Math.sin(rad(b[1]))-Math.sin(rad(a[1]))*Math.cos(rad(b[1]))*Math.cos(rad(b[0]-a[0]));
+  return (Math.atan2(y,x)*180/Math.PI+360)%360}
+const follow={on:false,plan:null,t0:0,idx:0,cam:null,raf:null,tipRef:null,lastTick:0};
+function buildPlan(dayId){
+  const legs=[];let t=0;
+  ROUTES[dayId].features.forEach(f=>{
+    const c=f.geometry.coordinates;if(c.length<2)return;
+    const cum=[0];for(let i=1;i<c.length;i++)cum.push(cum[i-1]+distM(c[i-1],c[i]));
+    const len=cum[cum.length-1]||1;
+    const mode=f.properties.mode==='walk'?'walk':(f.properties.mode==='bus'?'bus':'ride');
+    const dur=Math.max(2000,Math.min(6000,len/PACE[mode]*1000));
+    legs.push({type:'move',c,cum,len,mode,start:t,end:t+dur});t+=dur;
+    legs.push({type:'dwell',ref:f.properties.b,mode,at:c[c.length-1],start:t,end:t+1200});t+=1200;
+  });
+  return {legs,total:t,day:dayId};
+}
+function ptAt(leg,s){const{c,cum}=leg;
+  if(s<=0)return c[0];if(s>=leg.len)return c[c.length-1];
+  let lo=0,hi=cum.length-1;
+  while(lo<hi){const m=(lo+hi)>>1;cum[m]<s?lo=m+1:hi=m}
+  const i=Math.max(1,lo),f=(s-cum[i-1])/((cum[i]-cum[i-1])||1);
+  return [c[i-1][0]+(c[i][0]-c[i-1][0])*f, c[i-1][1]+(c[i][1]-c[i-1][1])*f]}
+function startFollow(){
+  if(!state.sel||follow.on)return;
+  const plan=buildPlan(state.sel);
+  if(!plan.legs.length)return;
+  follow.plan=plan;follow.on=true;follow.t0=performance.now();
+  follow.idx=0;follow.tipRef=null;follow.lastTick=0;
+  follow.cam={zoom:map.getZoom(),pitch:map.getPitch(),bearing:map.getBearing()};
+  tip.remove();render();
+  const frame=now=>{if(!follow.on)return;followTick(now);
+    if(follow.on)follow.raf=requestAnimationFrame(frame)};
+  follow.raf=requestAnimationFrame(frame);
+}
+function stopFollow(refit){
+  if(!follow.on)return;
+  follow.on=false;
+  if(follow.raf)cancelAnimationFrame(follow.raf);follow.raf=null;
+  tip.remove();follow.tipRef=null;
+  render();
+  if(refit!==false&&state.sel)flyDay(DAYS.find(d=>d.id===state.sel));
+}
+function followTick(now){
+  const p=follow.plan,e=now-follow.t0;
+  if(e>=p.total){stopFollow();return}
+  const dt=Math.min(100,follow.lastTick?now-follow.lastTick:16);follow.lastTick=now;
+  let leg=p.legs[follow.idx];
+  while(leg&&e>=leg.end){follow.idx++;leg=p.legs[follow.idx]}
+  if(!leg){stopFollow();return}
+  const camT=CAMBY[leg.mode]||CAMBY.ride;
+  let center,targB=follow.cam.bearing;
+  if(leg.type==='move'){
+    if(follow.tipRef){tip.remove();follow.tipRef=null}
+    const f=(e-leg.start)/(leg.end-leg.start),s=f*leg.len;
+    center=ptAt(leg,s);
+    const ahead=ptAt(leg,Math.min(leg.len,s+Math.max(30,leg.len*.02)));
+    if(distM(center,ahead)>1)targB=bearM(center,ahead);
+  }else{
+    center=leg.at;
+    if(!follow.tipRef&&leg.ref&&owner[leg.ref]){showTip(leg.ref,owner[leg.ref]);follow.tipRef=leg.ref}
+  }
+  const kz=1-Math.exp(-dt/600),kb=1-Math.exp(-dt/350);
+  follow.cam.zoom+=(camT.z-follow.cam.zoom)*kz;
+  follow.cam.pitch+=(camT.p-follow.cam.pitch)*kz;
+  const db=((targB-follow.cam.bearing+540)%360)-180;
+  follow.cam.bearing+=db*kb;
+  map.jumpTo({center,zoom:follow.cam.zoom,pitch:follow.cam.pitch,bearing:follow.cam.bearing});
+  updatePinScale();
+}
+document.getElementById('followBtn').addEventListener('click',()=>{follow.on?stopFollow():startFollow()});
+map.getCanvas().addEventListener('pointerdown',()=>{if(follow.on)stopFollow(false)});
+
 const RT_SFX=['-glow','-case-ride','-case-walk','-ride','-walk'];
 function render(){
   const act=state.hover||state.sel;
@@ -798,9 +901,21 @@ function render(){
   if(lg){const d=act&&DAYS.find(x=>x.id===act);
     lg.style.setProperty('--lg',d?d.hex:'#8fc5ff');
     document.getElementById('lg-hd').textContent=d?('Day '+d.n+' · '+d.chip):'All days';}
+  // plate stat line: whole-trip numbers, or the active day's distances
+  const ps=document.getElementById('plateStat');
+  if(ps){const d=act&&DAYS.find(x=>x.id===act);
+    ps.textContent=d
+      ?`${d.stops.length} stops · ${kmF(DAY_DIST[d.id].total)} km · ${kmF(DAY_DIST[d.id].walk)} km on foot`
+      :`${DAYS.length} days · ${TRIP.stops} stops · ${kmF(TRIP.total)} km · ${kmF(TRIP.walk)} km on foot`;}
+  // follow button: only when a day is selected; label flips while driving
+  const fb=document.getElementById('followBtn');
+  if(fb){fb.style.display=state.sel?'inline-block':'none';
+    fb.textContent=follow.on?'■ Stop':'▶ Follow route';}
   if(act)showDay(DAYS.find(d=>d.id===act),state.ref);else showIntro();
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){state.sel=null;state.hover=null;render();flyHome()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){
+  if(follow.on){stopFollow();return}
+  state.sel=null;state.hover=null;render();flyHome()}});
 render();
 </script>
 </body>
