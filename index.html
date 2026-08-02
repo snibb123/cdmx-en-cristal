@@ -110,6 +110,14 @@
   #card li .why.sum{color:var(--ink)}
   #card li .why-lbl{display:inline-block;margin-right:5px;color:var(--c,#8fc5ff);
     font:600 7.5px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;vertical-align:1px}
+  #card .note{margin-top:9px;padding:8px 10px;border-radius:8px;
+    background:rgba(150,200,255,.07);border-left:2px solid var(--c,#8fc5ff);
+    font:400 10.5px/1.45 var(--body);color:var(--mut)}
+  #card .note-rain{border-left-color:#6fb7e8;background:rgba(111,183,232,.09)}
+  #card .note-lbl{display:block;margin-bottom:2px;color:var(--ink);
+    font:600 8px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase}
+  body.light #card .note{background:rgba(30,60,110,.05)}
+  body.light #card .note-rain{background:rgba(60,130,190,.08)}
   #card .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
   #card .tag{font:500 9px/1 var(--mono);letter-spacing:.04em;padding:4px 7px;border-radius:99px;
     border:1px solid rgba(120,225,170,.35);color:#8ce8b8}
@@ -271,6 +279,7 @@ const DAYS=[
   {t:'7:00p',r:'felina',d:'One drink at sunset.'},
   {t:'8:00p',r:'meroma',d:'Reserved dinner, 8:00 pm.'},
   {t:'10:30p',r:'tlecan',d:'Optional nightcap; one mezcal.'}],
+ rain:'If the afternoon storm lands, swap the Parque México loop for MODO (Museo del Objeto del Objeto) on Colima in Roma Norte, a small indoor design museum a few blocks from dinner.',
  tags:[['ok','Azul Histórico 1:45p'],['ok','Meroma 8:00p']]},
 {id:'d3',n:3,date:'Mon · Aug 10',chip:'Roma laze',hex:'#9edc5a',
  title:'Roma & Condesa',
@@ -281,6 +290,7 @@ const DAYS=[
   {t:'2:30p',r:'maizajo',d:'Lunch; heirloom-corn tortillas and tacos.'},
   {t:'8:00p',r:'parnita',d:'Casual dinner of Mexican botanas.'},
   {t:'10:30p',r:'juanes',d:'Late-night tacos; open until 3 am, cash only.'}],
+ rain:'If it rains through the afternoon, trade the neighborhood wander for Casa Lamm on Álvaro Obregón: galleries, a bookshop, and a café all under one roof in Roma Norte.',
  tags:[]},
 {id:'d4',n:4,date:'Tue · Aug 11',chip:'Coyoacán',hex:'#5b8cff',
  title:'Coyoacán',
@@ -290,6 +300,7 @@ const DAYS=[
   {t:'1:00p',r:'danz',d:'Lunch on the plaza. If unconfirmed, arrive at the 12:30 opening.'},
   {t:'2:45p',r:'mcoyo',d:'Short visit; the tostada counter is the highlight.'},
   {t:'3:30p',r:'trotsky',d:'Optional; about 60 minutes.'}],
+ rain:'The plaza and market are open-air. If the rain comes in, the Museo Nacional de Culturas Populares on Avenida Hidalgo is indoors and a short walk from the market.',
  tags:[['ok','Casa Azul 11:00a'],['todo','Danzantes: confirm WhatsApp']]},
 {id:'d5',n:5,date:'Wed · Aug 12',chip:'Puebla',hex:'#e77ef2',
  title:'Puebla',
@@ -302,36 +313,36 @@ const DAYS=[
   {t:'3:00p',r:'rosario',d:'Free entry; about 20 minutes.'},
   {t:'3:45p',r:'zocalop',d:'Walk the square and cathedral, then the Sapos antiques street.'},
   {t:'8:00p',r:'mural',d:'Reserved dinner, 8:00 pm; order the chiles en nogada.'}],
+ rain:'The Zócalo and the Sapos antiques street are outdoors. In rain, the Museo Amparo a few blocks south is the best indoor substitute: pre-Hispanic and colonial collections in a restored colonial house.',
  tags:[['ok','Casareyna 1 night'],['ok','El Mural 8:00p'],['todo','Buy ADO tickets']]},
 {id:'d6',n:6,date:'Thu · Aug 13',chip:'Cholula',hex:'#ff9950',
  title:'Cholula & return',
- blurb:'The Great Pyramid of Cholula in the morning, then the midday bus back to Mexico City and a low-key evening in Roma.',
+ blurb:'An unhurried morning at the Great Pyramid, lunch in Cholula, then an afternoon coach back to Mexico City. Check-in is flexible, so the day is paced around the sights rather than a hotel window.',
  stops:[
-  {t:'9:00a',r:'cholula',d:'Open area, site museum, and church climb. Leave by ~10:15 for the bus.'},
-  {t:'12:00p',r:'capu',d:'12:00 pm ADO coach back to Mexico City; arrives ~2:20 pm.'},
-  {t:'3:15p',r:'uliv',d:'Second check-in, within the 3–4 pm window.'},
+  {t:'9:00a',r:'cholula',d:'Unhurried: open area, site museum, church climb, and the town square. Allow about 2.5 hours.'},
+  {t:'1:30p',r:'capu',d:'~1:30 pm ADO coach back to Mexico City; arrives TAPO about 3:50 pm. Lunch in Cholula or Puebla first.'},
+  {t:'4:30p',r:'uliv',d:'Check in on arrival. ULIV confirmed there is no fixed 3–4 pm window, so no need to rush the morning.'},
   {t:'6:30p',r:'baltra',d:'Aperitivo; go early.'},
   {t:'8:00p',r:'blanco',d:'Casual dinner. Alternatives: Expendio de Maíz or Atarantados.'}],
- tags:[['ok','ULIV stay 2'],['todo','Book ADO 12:00p return']]},
-{id:'d7',n:7,date:'Fri · Aug 14',chip:'Chapultepec',hex:'#43dfa6',
- title:'Chapultepec & Polanco',
- blurb:'Chapultepec park’s two main sights, the castle and the National Anthropology Museum, followed by the Polanco district.',
+ tags:[['ok','ULIV stay 2'],['todo','Book ADO ~1:30p return']]},
+{id:'d7',n:7,date:'Fri · Aug 14',chip:'Lucha libre',hex:'#43dfa6',
+ title:'Anthropology & lucha libre',
+ blurb:'A deliberately simple day: the National Anthropology Museum in the late morning, a long lunch, a rest, and Friday-night lucha libre at Arena México.',
  stops:[
-  {t:'9:00a',r:'castillo',d:'Arrive before the 9 am opening; about 90 minutes.'},
-  {t:'11:00a',r:'antro',d:'About 2.5 hours; prioritize the ground-floor archaeology halls.'},
-  {t:'1:45p',r:'turix',d:'Quick lunch counter; cash only.'},
-  {t:'3:00p',r:'soumaya',d:'Optional; free entry.'},
-  {t:'8:30p',r:'carinito',d:'Dinner; no reservations, expect a short wait.'}],
- tags:[['todo','Clásicos: appt or cut']]},
+  {t:'10:00a',r:'antro',d:'The anchor of the day. About 2.5 hours; prioritize the ground-floor archaeology halls.'},
+  {t:'1:30p',r:'turix',d:'Yucatecan lunch counter in Polanco; cash only.'},
+  {t:'6:00p',r:'carinito',d:'Early dinner so there is no rush to the arena. No reservations, expect a short wait.'},
+  {t:'8:30p',r:'arena',d:'Viernes Espectacular CMLL. Doors well before the 8:30 pm bell; seats Preferente Central, section PRECN6, row F, 65 and 66. Tickets are in Riley’s Ticketmaster app.'}],
+ energetic:'With more energy: Castillo de Chapultepec (opens 9 am, next to the museum) or Museo Soumaya in Polanco after lunch.',
+ tags:[['ok','Lucha libre 8:30p'],['ok','Order 24-59141/MXC']]},
 {id:'d8',n:8,date:'Sat · Aug 15',chip:'Roma crawl',hex:'#ff7d92',
  title:'Roma Norte',
- blurb:'A local final full day in Roma Norte: a seafood lunch at Contramar and a farewell dinner at Sartoria.',
+ blurb:'A local final full day in Roma Norte, ending with a farewell dinner at Sartoria.',
  stops:[
   {t:'9:30a',r:'rosetta',d:'Slow coffee near the apartment; Lalo! as an alternative.'},
-  {t:'1:30p',r:'contramar',d:'Reserved lunch, ~1:30 pm.'},
   {t:'6:30p',r:'baltra',d:'Optional aperitivo.'},
   {t:'7:30p',r:'sartoria',d:'Reserved dinner, 7:30 pm; 10-minute tolerance.'}],
- tags:[['ok','Sartoria 7:30p'],['todo','Contramar: book ~Jul 16']]},
+ tags:[['ok','Sartoria 7:30p']]},
 {id:'d9',n:9,date:'Sun · Aug 16',chip:'Depart',hex:'#b48cff',
  title:'Departure',
  blurb:'Early transfer to MEX Terminal 2 for the morning flight home.',
@@ -371,7 +382,7 @@ const SUMMARIES={
  turix:"Tiny Polanco counter serving only Yucatecan cochinita pibil; cash only.",
  soumaya:"Free art museum in a landmark silver-clad building at Plaza Carso.",
  carinito:"Thai-Mexican fusion taquería in Roma Norte (Michelin Bib Gourmand).",
- contramar:"Landmark Roma Norte seafood restaurant, known for tuna tostadas and pescado a la talla.",
+ arena:"The home of Mexican lucha libre since 1956, hosting CMLL's Friday night cards in Colonia Doctores.",
  baltra:"Cocktail bar in Condesa.",
  sartoria:"Marco Carboni’s handmade-pasta restaurant in Roma Norte.",
  blanco:"Spanish-Mexican restaurant in Roma Norte.",
@@ -697,6 +708,8 @@ function showDay(day,ref){
         <span class="nm"><b>${STOPS[s.r].label}</b>${s.r===ref?
           `${SUMMARIES[s.r]?`<span class="why sum">${SUMMARIES[s.r]}</span>`:''}<span class="why"><span class="why-lbl">Plan</span>${s.d}</span>`:''}</span></li>`).join('')}
      </ul>
+     ${day.energetic?`<p class="note note-up"><span class="note-lbl">If energetic</span>${day.energetic}</p>`:''}
+     ${day.rain?`<p class="note note-rain"><span class="note-lbl">If it rains</span>${day.rain}</p>`:''}
      <div class="tags">${day.tags.map(tagHtml).join('')}</div>
    </div>`;
 }
@@ -714,7 +727,7 @@ function showIntro(){
        <li><span class="tm">${TRIP.stops}</span><span class="nm"><b>stops</b> · CDMX + Puebla + Cholula</span></li>
        <li><span class="tm">5</span><span class="nm"><b>tables booked</b> · 3 still to chase</span></li>
      </ul>
-     <div class="tags"><span class="tag">✓ Casa Azul 11:00a Tue</span><span class="tag todo">⚠ Contramar opens ~Jul 16</span></div>
+     <div class="tags"><span class="tag">✓ Casa Azul 11:00a Tue</span><span class="tag todo">⚠ Danzantes: confirm</span></div>
    </div>`;
 }
 
